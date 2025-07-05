@@ -1,0 +1,10 @@
+---
+key: "ListInsurancePolicyAPI-1.0.0"
+name : "ListInsurancePolicyAPI"
+displayName : "ListInsurancePolicyAPI"
+description: "ListInsurancePolicyAPI"
+version: "1.0.0"
+serviceUrl: "https://{MI_HOST}:{MI_PORT}/listinsurancepolicyapi"
+definitionType: "OAS3"
+securityType: "BASIC"
+mutualSSLEnabled: false

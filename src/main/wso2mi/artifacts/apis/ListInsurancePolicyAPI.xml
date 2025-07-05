@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api name="ListInsurancePolicyAPI" context="/insurance/1.0.0/policy_types"
+    xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="GET" uri-template="/">
+        <inSequence>
+            <call>
+                <endpoint key="ListInsurancePolicyEndpoint" />
+
+            </call>
+            <variable name="OrganizationId" type="STRING" expression="json-eval($.organization_id)" />
+            <variable name="OrganizationName" type="STRING"
+                expression="json-eval($.organization_name)" />
+            <property name="PolicyTypes" scope="default" type="STRING"
+                expression="json-eval($.policy_types)" />
+            <log category="INFO" logMessageID="false" logFullPayload="false">
+                <message>${properties.synapse.PolicyTypes}</message>
+            </log>
+            <payloadFactory media-type="json" template-type="default">
+
+                <format>{"ResponseHeader":{"status":"ok","RequestedId":12345},"ResponseBody":{"OrganizationId":
+                    "${vars.OrganizationId}","OrganizationName":"${vars.OrganizationName}","PolicyTypes":[${properties.synapse.PolicyTypes}]
+                    }}</format>
+            </payloadFactory>
+            <respond />
+        </inSequence>
+        <faultSequence>
+        </faultSequence>
+    </resource>
+</api>
