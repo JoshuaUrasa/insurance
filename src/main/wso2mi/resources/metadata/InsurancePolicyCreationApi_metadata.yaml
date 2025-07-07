@@ -1,0 +1,10 @@
+---
+key: "InsurancePolicyCreationApi-1.0.0"
+name : "InsurancePolicyCreationApi"
+displayName : "InsurancePolicyCreationApi"
+description: "InsurancePolicyCreationApi"
+version: "1.0.0"
+serviceUrl: "https://{MI_HOST}:{MI_PORT}/insurance/1.0.0/policy_creation"
+definitionType: "OAS3"
+securityType: "BASIC"
+mutualSSLEnabled: false

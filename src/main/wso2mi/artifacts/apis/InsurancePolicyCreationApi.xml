@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/insurance/1.0.0/policy_creation" name="InsurancePolicyCreationApi"
+    xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="POST" uri-template="/insurance/1.0.0/policy_creation">
+        <inSequence>
+            <validate source="json-eval($)" cache-schema="true">
+                <schema key="resources:json/RequestValidationSchema.json" />
+                <on-fail>
+                    <payloadFactory media-type="json" template-type="default">
+                        <format>{"ResponseHeader": { "status":"Error", "RequestId":12345,
+                            "ErrorMessage":"$1"}}</format>
+                        <args>
+                            <arg expression="$ctx:ERROR_DETAIL" evaluator="xml" />
+                        </args>
+                    </payloadFactory>
+                    <property name="HTTP_SC" value="400" scope="axis2" />
+                    <respond />
+                </on-fail>
+            </validate>
+            <variable name="FIRST_NAME" type="STRING" expression="${payload.PolicyHolder.FirstName}" />
+            <variable name="LAST_NAME" type="STRING" expression="${payload.PolicyHolder.LastName}" />
+            <variable name="DOB" type="STRING" expression="${payload.PolicyHolder.DateOfBirth}" />
+            <variable name="EMAIL" type="STRING"
+                expression="${payload.PolicyHolder.ContactInfo.Email}" />
+            <variable name="MOBILE" type="STRING"
+                expression="${payload.PolicyHolder.ContactInfo.Phone}" />
+            <variable name="PolicyDetailsPolicyType" type="STRING"
+                expression="${payload.PolicyDetails.PolicyType}" />
+            <variable name="PAYMENT_METHOD" type="STRING"
+                expression="${payload.PaymentInfo.PaymentMethod}" />
+            <log category="INFO" logMessageID="false" logFullPayload="false">
+                <message>${vars.PolicyDetailsPolicyType}</message>
+            </log>
+            <call>
+                <endpoint key="ListInsurancePolicyEndpoint" />
+            </call>
+            <!-- Store policy_types array in a property for better access -->
+            <property name="policyTypes" expression="json-eval($.policy_types)" scope="default" />
+            <log category="INFO" logMessageID="false" logFullPayload="false">
+                <message>oyoo</message>
+            </log>
+
+            <foreach expression="json-eval($.policy_types)">
+                <sequence>
+
+                    <log category="INFO" logMessageID="false" logFullPayload="false">
+                        <message>Processing policy: ${}</message>
+                    </log>
+
+                    <variable name="currentPolicyId" type="STRING"
+                        expression="json-eval($.policy_type_id)" />
+                    <variable name="currentPolicyName" type="STRING" expression="json-eval($.name)" />
+                    <log category="INFO" logMessageID="false" logFullPayload="false">
+                        <message>Policy ID: ${vars.currentPolicyId}, Name: ${vars.currentPolicyName}</message>
+                    </log>
+                    <filter xpath="${vars.PolicyDetailsPolicyType == vars.currentPolicyId}">
+                        <then>
+                            <log category="INFO" logMessageID="false" logFullPayload="false">
+                                <message>${vars.FIRST_NAME}</message>
+                            </log>
+
+                            <payloadFactory media-type="json" template-type="default">
+
+                                <format> { "insertInsurancePolicy": {
+                                    "FIRST_NAME":"${vars.FIRST_NAME}", "LAST_NAME":"${vars.LAST_NAME}", "DOB": "${vars.DOB}", "EMAIL":"${vars.EMAIL}", "MOBILE": "${vars.MOBILE}", "POLICY_TYPE_ID":"${vars.PolicyDetailsPolicyType}", "PAYMENT_METHOD":"${vars.PAYMENT_METHOD}" } } </format>
+                            </payloadFactory>
+                            <payloadFactory media-type="xml" template-type="default">
+                                <format>
+                                    <insertInsurancePolicy xmlns="http://ws.apache.org/ns/data">
+                                        <FIRST_NAME>
+                                            $1</FIRST_NAME>
+                                        <LAST_NAME>$2</LAST_NAME>
+                                        <DOB>$3</DOB>
+                                        <EMAIL>$4</EMAIL>
+                                        <MOBILE>$5</MOBILE>
+                                        <POLICY_TYPE_ID>$6</POLICY_TYPE_ID>
+                                        <PAYMENT_METHOD>
+                                            $7</PAYMENT_METHOD>
+                                    </insertInsurancePolicy>
+                                </format>
+                                <args>
+                                    <arg evaluator="json"
+                                        expression="$.insertInsurancePolicy.FIRST_NAME" />
+                                    <arg evaluator="json"
+                                        expression="$.insertInsurancePolicy.LAST_NAME" />
+                                    <arg evaluator="json" expression="$.insertInsurancePolicy.DOB" />
+                                    <arg evaluator="json" expression="$.insertInsurancePolicy.EMAIL" />
+                                    <arg evaluator="json"
+                                        expression="$.insertInsurancePolicy.MOBILE" />
+                                    <arg evaluator="json"
+                                        expression="$.insertInsurancePolicy.POLICY_TYPE_ID" />
+                                    <arg evaluator="json"
+                                        expression="$.insertInsurancePolicy.PAYMENT_METHOD" />
+                                </args>
+                            </payloadFactory>
+                            <call>
+                                <endpoint>
+                                    <address
+                                        uri="http://localhost:8290/services/InsuranceCreationService/insertInsurancePolicy" />
+                                </endpoint>
+                            </call>
+
+                            <respond />
+                        </then>
+                        <else>
+                            <log category="INFO" logMessageID="false" logFullPayload="false">
+                                <message>sio huku</message>
+                            </log>
+                        </else>
+                    </filter>
+                </sequence>
+            </foreach>
+            <respond />
+        </inSequence>
+        <faultSequence>
+</faultSequence>
+    </resource>
+</api>

@@ -1,0 +1,56 @@
+{
+  "type": "API",
+  "/insurance/1.0.0/policy_creation": {
+    "requests": [
+      {
+        "name": "requestBody",
+        "contentType": "application/json",
+        "content": {
+          "PolicyHolder": {
+            "FirstName": "John",
+            "LastName": "Doe",
+            "DateOfBirth": "1985-06-15",
+            "Gender": "Male",
+            "ContactInfo": {
+              "Email": "john.doe@yopmail.com",
+              "Phone": "+1234567890",
+              "Address": {
+                "Street": "123 Elm Street",
+                "City": "Springfield",
+                "State": "IL",
+                "ZipCode": "62704",
+                "Country": "USA"
+              }
+            }
+          },
+          "PolicyDetails": {
+            "PolicyType": "HLT001",
+            "PrimaryCoverageAmount": 100000,
+            "PremiumAmount": 1700,
+            "StartDate": "2024-09-01",
+            "EndDate": "2025-08-31",
+            "PaymentFrequency": "Monthly"
+          },
+          "Beneficiaries": [
+            {
+              "FirstName": "Jane",
+              "LastName": "Doe",
+              "DateOfBirth": "1988-02-10",
+              "Relationship": "Spouse",
+              "PercentageShare": 100
+            }
+          ],
+          "PaymentInfo": {
+            "PaymentMethod": "Credit Card",
+            "CardNumber": "4111111111111111",
+            "CardExpiryDate": "2026-05",
+            "CardCvv": "123"
+          }
+        },
+        "queryParams": {},
+        "pathParams": {}
+      }
+    ],
+    "defaultRequest": "requestBody"
+  }
+}

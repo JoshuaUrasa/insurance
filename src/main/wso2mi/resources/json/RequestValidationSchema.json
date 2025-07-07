@@ -1,0 +1,112 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "PolicyHolder": {
+      "type": "object",
+      "properties": {
+        "FirstName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "LastName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "DateOfBirth": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "Gender": {
+          "type": "string",
+          "enum": ["Male", "Female"]
+        },
+        "ContactInfo": {
+          "type": "object",
+          "properties": {
+            "Email": {
+              "type": ["string", "null"],
+              "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+            },
+            "Phone": {
+              "type": ["string", "null"],
+              "pattern": "^\\+?[1-9]\\d{6,14}$"
+            },
+            "Address": {
+              "type": "object",
+              "properties": {
+                "Street": { "type": "string" },
+                "City": { "type": "string" },
+                "State": { "type": "string" },
+                "ZipCode": { "type": "string" },
+                "Country": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["FirstName", "LastName", "DateOfBirth"],
+      "additionalProperties": false
+    },
+    "PolicyDetails": {
+      "type": "object",
+      "properties": {
+        "PolicyType": {
+          "type": "string"
+        },
+        "PrimaryCoverageAmount": {
+          "type": "integer"
+        },
+        "PremiumAmount": {
+          "type": "integer"
+        },
+        "StartDate": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "EndDate": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "PaymentFrequency": {
+          "type": "string",
+          "enum": ["Monthly", "Weekly", "Yearly"]
+        }
+      },
+      "required": ["PolicyType", "PrimaryCoverageAmount", "PremiumAmount", "StartDate", "EndDate", "PaymentFrequency"],
+      "additionalProperties": false
+    },
+    "Beneficiaries": {
+      "type": ["array", "null"],
+      "items": {
+        "type": "object",
+        "properties": {
+          "FirstName": { "type": "string" },
+          "LastName": { "type": "string" },
+          "DateOfBirth": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+          "Relationship": { "type": "string" },
+          "PercentageShare": { "type": "integer", "minimum": 0, "maximum": 100 }
+        },
+        "required": ["FirstName", "LastName", "DateOfBirth", "Relationship", "PercentageShare"],
+        "additionalProperties": false
+      }
+    },
+    "PaymentInfo": {
+      "type": ["object", "null"],
+      "properties": {
+        "PaymentMethod": { "type": "string" },
+        "CardNumber": { "type": "string" },
+        "CardExpiryDate": { "type": "string", "pattern": "^\\d{4}-\\d{2}$" },
+        "CardCvv": { "type": "string", "pattern": "^\\d{3,4}$" }
+      },
+      "required": ["PaymentMethod", "CardNumber", "CardExpiryDate", "CardCvv"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["PolicyHolder", "PolicyDetails"],
+  "additionalProperties": false
+}
