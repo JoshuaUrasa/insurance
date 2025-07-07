@@ -7,8 +7,8 @@
                 <schema key="resources:json/RequestValidationSchema.json" />
                 <on-fail>
                     <payloadFactory media-type="json" template-type="default">
-                        <format>{"ResponseHeader": { "status":"Error", "RequestId":12345,
-                            "ErrorMessage":"$1"}}</format>
+                        <format>{"ResponseHeader": {
+                            "status":"Error", "RequestId":12345, "ErrorMessage":"$1"}}</format>
                         <args>
                             <arg expression="$ctx:ERROR_DETAIL" evaluator="xml" />
                         </args>
@@ -28,13 +28,51 @@
                 expression="${payload.PolicyDetails.PolicyType}" />
             <variable name="PAYMENT_METHOD" type="STRING"
                 expression="${payload.PaymentInfo.PaymentMethod}" />
+            <propertyGroup>
+                <property name="gender" scope="default" type="STRING"
+                    expression="${payload.PolicyHolder.Gender}" action="set" />
+                <property name="street" scope="default" type="STRING"
+                    expression="${payload.PolicyHolder.ContactInfo.Address.Street}" action="set" />
+                <property name="city" scope="default" type="STRING"
+                    expression="${payload.PolicyHolder.ContactInfo.Address.City}" action="set" />
+                <property name="state" scope="default" type="STRING"
+                    expression="${payload.PolicyHolder.ContactInfo.Address.State}" action="set" />
+                <property name="zip_code" scope="default" type="STRING"
+                    expression="${payload.PolicyHolder.ContactInfo.Address.ZipCode}" action="set" />
+                <property name="country" scope="default" type="STRING"
+                    expression="${payload.PolicyHolder.ContactInfo.Address.Country}" action="set" />
+                <property name="primary_coverage_amount" scope="default" type="INTEGER"
+                    expression="${payload.PolicyDetails.PrimaryCoverageAmount}" action="set" />
+                <property name="premium_amount" scope="default" type="INTEGER"
+                    expression="${payload.PolicyDetails.PremiumAmount}" action="set" />
+                <property name="start_date" scope="default" type="STRING"
+                    expression="${payload.PolicyDetails.StartDate}" action="set" />
+                <property name="end_date" scope="default" type="STRING"
+                    expression="${payload.PolicyDetails.EndDate}" action="set" />
+                <property name="payment_frequency" scope="default" type="STRING"
+                    expression="${payload.PolicyDetails.PaymentFrequency}" action="set" />
+                <property name="b_firstname" scope="default" type="STRING"
+                    expression="${payload.Beneficiaries[0].FirstName}" action="set" />
+                <property name="b_lastname" scope="default" type="STRING"
+                    expression="${payload.Beneficiaries[0].LastName}" action="set" />
+                <property name="b_date_of_birth" scope="default" type="STRING"
+                    expression="${payload.Beneficiaries[0].DateOfBirth}" action="set" />
+                <property name="b_percentage_share" scope="default" type="STRING"
+                    expression="${payload.Beneficiaries[0].PercentageShare}" action="set" />
+                <property name="card_number" scope="default" type="STRING"
+                    expression="${payload.PaymentInfo.CardNumber}" action="set" />
+                <property name="card_exp_date" scope="default" type="STRING"
+                    expression="${payload.PaymentInfo.CardExpiryDate}" action="set" />
+                <property name="card_cvv" scope="default" type="STRING"
+                    expression="${payload.PaymentInfo.CardCvv}" action="set" />
+            </propertyGroup>
             <log category="INFO" logMessageID="false" logFullPayload="false">
                 <message>${vars.PolicyDetailsPolicyType}</message>
             </log>
             <call>
                 <endpoint key="ListInsurancePolicyEndpoint" />
             </call>
-            <!-- Store policy_types array in a property for better access -->
+            
             <property name="policyTypes" expression="json-eval($.policy_types)" scope="default" />
             <log category="INFO" logMessageID="false" logFullPayload="false">
                 <message>oyoo</message>
@@ -43,9 +81,6 @@
             <foreach expression="json-eval($.policy_types)">
                 <sequence>
 
-                    <log category="INFO" logMessageID="false" logFullPayload="false">
-                        <message>Processing policy: ${}</message>
-                    </log>
 
                     <variable name="currentPolicyId" type="STRING"
                         expression="json-eval($.policy_type_id)" />
@@ -53,29 +88,35 @@
                     <log category="INFO" logMessageID="false" logFullPayload="false">
                         <message>Policy ID: ${vars.currentPolicyId}, Name: ${vars.currentPolicyName}</message>
                     </log>
+
                     <filter xpath="${vars.PolicyDetailsPolicyType == vars.currentPolicyId}">
                         <then>
                             <log category="INFO" logMessageID="false" logFullPayload="false">
                                 <message>${vars.FIRST_NAME}</message>
                             </log>
 
+
                             <payloadFactory media-type="json" template-type="default">
 
                                 <format> { "insertInsurancePolicy": {
-                                    "FIRST_NAME":"${vars.FIRST_NAME}", "LAST_NAME":"${vars.LAST_NAME}", "DOB": "${vars.DOB}", "EMAIL":"${vars.EMAIL}", "MOBILE": "${vars.MOBILE}", "POLICY_TYPE_ID":"${vars.PolicyDetailsPolicyType}", "PAYMENT_METHOD":"${vars.PAYMENT_METHOD}" } } </format>
+                                    "FIRST_NAME":"${vars.FIRST_NAME}",
+                                    "LAST_NAME":"${vars.LAST_NAME}", "DOB": "${vars.DOB}",
+                                    "EMAIL":"${vars.EMAIL}", "MOBILE": "${vars.MOBILE}",
+                                    "POLICY_TYPE_ID":"${vars.PolicyDetailsPolicyType}",
+                                    "PAYMENT_METHOD":"${vars.PAYMENT_METHOD}" } } </format>
                             </payloadFactory>
                             <payloadFactory media-type="xml" template-type="default">
                                 <format>
                                     <insertInsurancePolicy xmlns="http://ws.apache.org/ns/data">
                                         <FIRST_NAME>
-                                            $1</FIRST_NAME>
+                                    $1</FIRST_NAME>
                                         <LAST_NAME>$2</LAST_NAME>
                                         <DOB>$3</DOB>
                                         <EMAIL>$4</EMAIL>
                                         <MOBILE>$5</MOBILE>
                                         <POLICY_TYPE_ID>$6</POLICY_TYPE_ID>
                                         <PAYMENT_METHOD>
-                                            $7</PAYMENT_METHOD>
+                                    $7</PAYMENT_METHOD>
                                     </insertInsurancePolicy>
                                 </format>
                                 <args>
@@ -93,16 +134,83 @@
                                         expression="$.insertInsurancePolicy.PAYMENT_METHOD" />
                                 </args>
                             </payloadFactory>
-                            <call>
-                                <endpoint>
-                                    <address
-                                        uri="http://localhost:8290/services/InsuranceCreationService/insertInsurancePolicy" />
-                                </endpoint>
-                            </call>
 
+                            <property name="firstname" scope="default" type="STRING" expression="${vars.FIRST_NAME}" />
+<property name="LAST_NAME" scope="default" type="STRING" expression="${vars.LAST_NAME}" />
+<property name="DOB" scope="default" type="STRING" expression="${vars.DOB}" />
+<property name="EMAIL" scope="default" type="STRING" expression="${vars.EMAIL}" />
+<property name="MOBILE" scope="default" type="STRING" expression="${vars.MOBILE}" />
+<property name="POLICY_TYPE_ID" scope="default" type="STRING" expression="${vars.POLICY_TYPE_ID}" />
+<property name="PAYMENT_METHOD" scope="default" type="STRING" expression="${vars.PAYMENT_METHOD}" />
+<dataServiceCall serviceName="InsuranceCreationService">
+    <operations type="single">
+        <operation name="insertInsurancePolicy">
+            <param name="FIRST_NAME" expression="$ctx:firstname" evaluator="xml" />
+            <param name="LAST_NAME" expression="$ctx:LAST_NAME" evaluator="xml" />
+            <param name="DOB" expression="$ctx:DOB" evaluator="xml" />
+            <param name="EMAIL" expression="$ctx:EMAIL" evaluator="xml" />
+            <param name="MOBILE" expression="$ctx:MOBILE" evaluator="xml" />
+            <param name="POLICY_TYPE_ID" expression="$ctx:POLICY_TYPE_ID" evaluator="xml" />
+            <param name="PAYMENT_METHOD" expression="$ctx:PAYMENT_METHOD" evaluator="xml" />
+        </operation>
+    </operations>
+    <source type="inline" />
+    <target type="body" />
+</dataServiceCall>
+                            <!-- <call>
+                                <endpoint>
+                                    <http method="POST"
+                                        uri-template="http://localhost:8290/services/InsuranceCreationService/insertInsurancePolicy" />
+                                </endpoint>
+                            </call> -->
+                            <log category="INFO" logMessageID="false" logFullPayload="false">
+                                <message>nimemalza ku insert</message>
+                            </log>
+                            <payloadFactory media-type="json" template-type="default">
+
+                                <format>{
+                                    "policy_holder": { "first_name": "${vars.FIRST_NAME}",
+                                    "last_name": "${vars.LAST_NAME}", "date_of_birth":
+                                    "${vars.DOB}", "gender": "${properties.synapse.gender}",
+                                    "contact_info": { "email": "${vars.EMAIL}", "phone":
+                                    "${vars.MOBILE}", "address": { "street":
+                                    "${properties.synapse.street}", "city":
+                                    "${properties.synapse.city}", "state":
+                                    "${properties.synapse.state}", "zip_code":
+                                    "${properties.synapse.zip_code}", "country":
+                                    "${properties.synapse.country}" } } }, "policy_details": {
+                                    "policy_type": "${vars.PolicyDetailsPolicyType}",
+                                    "primary_coverage_amount":
+                                    ${properties.synapse.primary_coverage_amount}, "premium_amount":
+                                    ${properties.synapse.premium_amount}, "start_date":
+                                    "${properties.synapse.start_date}", "end_date":
+                                    "${properties.synapse.end_date}", "payment_frequency":
+                                    "${properties.synapse.payment_frequency}" }, "beneficiaries": [
+                                    { "first_name": "${properties.synapse.b_firstname}",
+                                    "last_name": "${properties.synapse.b_lastname}",
+                                    "date_of_birth": "${properties.synapse.b_date_of_birth}",
+                                    "relationship": "Spouse", "percentage_share":
+                                    ${properties.synapse.b_percentage_share} } ], "payment_info": {
+                                    "payment_method": "${vars.PAYMENT_METHOD}", "card_number":
+                                    "${properties.synapse.card_number}", "card_expiry_date":
+                                    "${properties.synapse.card_exp_date}", "card_cvv":
+                                    "${properties.synapse.card_cvv}" } }</format>
+                            </payloadFactory>
+
+                            <log category="INFO" logMessageID="false" logFullPayload="false">
+                                <message>najiandaaa </message>
+                            </log>
+                            <call>
+                                <endpoint key="InsurancePolicyCreationEndpoint" />
+
+                            </call>
+                            <log category="INFO" logMessageID="false" logFullPayload="false">
+                                <message>nimemalza</message>
+                            </log>
                             <respond />
                         </then>
                         <else>
+
                             <log category="INFO" logMessageID="false" logFullPayload="false">
                                 <message>sio huku</message>
                             </log>
