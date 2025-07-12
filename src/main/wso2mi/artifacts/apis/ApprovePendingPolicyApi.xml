@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/insurance/1.0.0/policy_approval" name="ApprovePendingPolicyApi"
+    xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="POST" uri-template="/">
+        <inSequence>
+            <log category="INFO" logMessageID="false" logFullPayload="false">
+                <message>................................................................................................. Request Received for Approve Pending..................................................</message>
+            </log>
+            
+            <property name="PolicyId" expression="json-eval($.PolicyId)"/>
+            <property name="ManagerId" expression="json-eval($.ManagerId)"/>
+            <property name="ApprovalStatus" expression="json-eval($.ApprovalStatus)"/>
+            <property name="Comments" expression="json-eval($.Comments)"/>
+            
+
+    
+            <filter xpath="fn:string-length(get-property('PolicyId')) = 0">
+                <then>
+                    <log category="ERROR">
+                        <message>PolicyId is mandatory and cannot be empty</message>
+                    </log>
+                    <payloadFactory media-type="json">
+                        <format>
+                            {
+                                "error": "BAD_REQUEST",
+                                "message": "PolicyId is mandatory",
+                                "code": 400
+                            }
+                        </format>
+                    </payloadFactory>
+                    <property name="HTTP_SC" value="400" scope="axis2"/>
+                    <respond/>
+                </then>
+            </filter>
+            
+            <filter xpath="fn:string-length(get-property('ManagerId')) = 0">
+                <then>
+                    <log category="ERROR">
+                        <message>ManagerId is mandatory and cannot be empty</message>
+                    </log>
+                    <payloadFactory media-type="json">
+                        <format>
+                            {
+                                "error": "BAD_REQUEST",
+                                "message": "ManagerId is mandatory",
+                                "code": 400
+                            }
+                        </format>
+                    </payloadFactory>
+                    <property name="HTTP_SC" value="400" scope="axis2"/>
+                    <respond/>
+                </then>
+            </filter>
+            
+            <filter xpath="fn:string-length(get-property('ApprovalStatus')) = 0">
+                <then>
+                    <log category="ERROR">
+                        <message>ApprovalStatus is mandatory and cannot be empty</message>
+                    </log>
+                    <payloadFactory media-type="json">
+                        <format>
+                            {
+                                "error": "BAD_REQUEST",
+                                "message": "ApprovalStatus is mandatory",
+                                "code": 400
+                            }
+                        </format>
+                    </payloadFactory>
+                    <property name="HTTP_SC" value="400" scope="axis2"/>
+                    <respond/>
+                </then>
+            </filter>
+            
+            
+            <filter xpath="get-property('ApprovalStatus') != 'APPROVED' and get-property('ApprovalStatus') != 'REJECTED'">
+                <then>
+                    <log category="ERROR">
+                        <message>ApprovalStatus must be either APPROVED or REJECTED</message>
+                    </log>
+                    <payloadFactory media-type="json">
+                        <format>
+                            {
+                                "error": "BAD_REQUEST",
+                                "message": "ApprovalStatus must be either APPROVED or REJECTED",
+                                "code": 400
+                            }
+                        </format>
+                    </payloadFactory>
+                    <property name="HTTP_SC" value="400" scope="axis2"/>
+                    <respond/>
+                </then>
+            </filter>
+        </inSequence>
+        <faultSequence>
+        </faultSequence>
+    </resource>
+</api>
