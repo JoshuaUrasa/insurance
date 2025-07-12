@@ -47,7 +47,7 @@
 
     <query id="fetchPendingInsurance" useConfig="insuranceService">
         <sql>SELECT DID, FIRST_NAME, STATUS, CREATED_AT, UPDATED_AT FROM INSURANCE_POLICY_DATA WHERE STATUS = 'PENDING_APPROVAL'</sql>
-        <result element="Insurance" rowName="Payment">
+        <result element="Insurance" rowName="Insurance">
             <element name="Id" column="DID" xsdType="integer"/>
             <element name="firstname" column="FIRST_NAME" xsdType="string"/>
             <element name="status" column="STATUS" xsdType="string" optional="true"/>

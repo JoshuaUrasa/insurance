@@ -6,7 +6,6 @@
     <parameter name="store.jms.connection.factory">QueueConnectionFactory</parameter>
     <parameter name="store.jms.JMSSpecVersion">1.1</parameter>
     <parameter name="store.jms.cache.connection">false</parameter>
-    <!-- Add retry parameters -->
     <parameter name="store.jms.retry.count">3</parameter>
     <parameter name="store.jms.retry.delay">1000</parameter>
 </messageStore>

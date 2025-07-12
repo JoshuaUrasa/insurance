@@ -12,10 +12,6 @@
             <property name="uri.var.policy_id" scope="default" type="STRING"
                 expression="${params.queryParams.policy_id}" />
 
-            <!-- Log the policy_id for debugging -->
-            <!-- <log category="INFO" logMessageID="false" logFullPayload="false">
-                <message>Policy ID: ${properties.synapse.uri.var.policy_id}</message>
-            </log> -->
             <call>
                 <endpoint key="ViewPolicyDetailsEndpoint" />
 

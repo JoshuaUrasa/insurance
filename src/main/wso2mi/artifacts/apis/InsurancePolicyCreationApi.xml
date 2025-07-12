@@ -185,20 +185,11 @@
                                     <target type="property" name="insertResponse" />
                                 </dataServiceCall>
 
-                                <!-- Extract DID using local-name() approach -->
                                 <property name="DID"
                                     expression="$ctx:insertResponse//*[local-name()='DID']/text()"
                                     scope="operation"
                                     type="STRING" />
 
-                                <!-- Debug logs to verify extraction -->
-                                <log category="INFO" logMessageID="false">
-                                    <property name="EXTRACTED_DID_VALUE" expression="$ctx:DID" />
-                                    <property name="DID_TYPE"
-                                        expression="fn:string-length($ctx:DID)" />
-                                </log>
-
-                                <!-- Conditional check to ensure DID was extracted -->
                                 <filter xpath="string-length($ctx:DID) > 0">
                                     <then>
                                         <log category="INFO" logMessageID="false">
@@ -272,11 +263,11 @@
                 </else>
             </filter>
 
-            <!-- Extract POLICY_ID from response -->
+            
             <property name="POLICY_ID" expression="json-eval($.policy_id)" scope="default"
                 type="STRING" />
 
-            <!-- Ensure all required properties are available for final response -->
+            
             <property name="EMAIL" expression="$ctx:EMAIL" scope="default" type="STRING" />
             <property name="DID" expression="get-property('operation','DID')
 " scope="default"
@@ -284,15 +275,9 @@
             <property name="CURRENT_TIMESTAMP" expression="get-property('SYSTEM_DATE')"
                 scope="default" type="STRING" />
 
-            <!-- Debug: Check all values before creating response -->
-            <log category="INFO" logMessageID="false">
-                <property name="BEFORE_RESPONSE_POLICY_ID" expression="$ctx:POLICY_ID" />
-                <property name="BEFORE_RESPONSE_DID" expression="$ctx:DID" />
-                <property name="BEFORE_RESPONSE_EMAIL" expression="$ctx:EMAIL" />
-                <property name="BEFORE_RESPONSE_TIMESTAMP" expression="$ctx:CURRENT_TIMESTAMP" />
-            </log>
+            
 
-            <!-- Store message in message store with DID -->
+
             <payloadFactory media-type="json">
                 <format>{"MESSAGE_TYPE": "POLICY_ID_UPDATE", "POLICY_ID": "$1", "DID": "$2",
                     "UPDATED_AT": "$4"}</format>
@@ -306,7 +291,6 @@
 
             <store messageStore="INS_DSS_QUEUE" />
 
-            <!-- Create final response payload with DID -->
             <payloadFactory media-type="json">
                 <format>{"MESSAGE_TYPE": "POLICY_ID_UPDATE", "POLICY_ID": "$1", "DID": "$2",
                     "EMAIL": "$3", "UPDATED_AT": "$4"}</format>
@@ -318,7 +302,7 @@
                 </args>
             </payloadFactory>
 
-            <!-- Final debug log -->
+
             <log category="INFO" logMessageID="false">
                 <property name="FINAL_RESPONSE_PAYLOAD" expression="json-eval($)" />
             </log>
