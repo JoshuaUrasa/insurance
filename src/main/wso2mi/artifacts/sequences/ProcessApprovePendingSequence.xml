@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="ProcessApprovePendingSequence" trace="enable" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- Log sequence start -->
+    <log level="custom" category="INFO">
+        <property name="Sequence" value="Starting ProcessApprovePendingSequence"/>
+    </log>
+
+    <!-- Define namespaces -->
+    <property name="ns" value="http://ws.wso2.org/dataservice"/>
+    <property name="soapenv" value="http://schemas.xmlsoap.org/soap/envelope/"/>
+
+    <!-- Fetch pending insurance records -->
+    <call>
+        <endpoint>
+            <http method="GET" uri-template="http://localhost:8290/services/InsuranceCreationService/fetchPendingInsurance"/>
+        </endpoint>
+    </call>
+
+    <!-- Log fetched records -->
+    <log level="custom" category="INFO">
+        <property name="FetchedRecords" expression="$body"/>
+    </log>
+
+    <!-- Check if records exist -->
+    <filter xpath="count(//ns:Insurance/ns:Payment) > 0" xmlns:ns="http://ws.wso2.org/dataservice">
+        <then>
+            <!-- Set configurable days threshold (1 day for demo) -->
+            <property name="daysThreshold" value="1" scope="default" type="INTEGER"/>
+
+            <!-- Log days threshold -->
+            <log level="custom" category="INFO">
+                <property name="DaysThreshold" expression="get-property('daysThreshold')"/>
+            </log>
+
+            <!-- Clear any existing error properties -->
+            <property name="ERROR_CODE" scope="axis2" action="remove"/>
+            <property name="ERROR_MESSAGE" scope="axis2" action="remove"/>
+
+            <!-- Call updateExpiredRecords operation -->
+            <payloadFactory media-type="xml">
+                <format>
+                    <p:updateExpiredRecords xmlns:p="http://ws.wso2.org/dataservice">
+                        <p:daysThreshold>$1</p:daysThreshold>
+                    </p:updateExpiredRecords>
+                </format>
+                <args>
+                    <arg expression="get-property('daysThreshold')"/>
+                </args>
+            </payloadFactory>
+
+            <call>
+                <endpoint>
+                    <http method="POST" uri-template="http://localhost:8290/services/InsuranceCreationService/updateExpiredRecords"/>
+                </endpoint>
+            </call>
+
+            <!-- Check for errors -->
+            <filter xpath="get-property('ERROR_CODE') != '' or get-property('ERROR_MESSAGE') != ''">
+                <then>
+                    <log level="custom" category="ERROR">
+                        <property name="UpdateError" value="Failed to update expired records"/>
+                        <property name="ErrorCode" expression="get-property('ERROR_CODE')"/>
+                        <property name="ErrorMessage" expression="get-property('ERROR_MESSAGE')"/>
+                    </log>
+                    <loopback/>
+                </then>
+                <else>
+                    <log level="custom" category="INFO">
+                        <property name="RecordsUpdated" value="Successfully updated records to CANCELLED"/>
+                    </log>
+                </else>
+            </filter>
+        </then>
+        <else>
+            <log level="custom" category="INFO">
+                <property name="NoRecords" value="No PENDING_APPROVAL records found"/>
+            </log>
+        </else>
+    </filter>
+
+    <!-- Log sequence completion -->
+    <log level="custom" category="INFO">
+        <property name="Sequence" value="Completed ProcessApprovePendingSequence"/>
+    </log>
+</sequence>

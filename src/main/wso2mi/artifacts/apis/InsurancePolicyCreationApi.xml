@@ -3,14 +3,17 @@
     xmlns="http://ws.apache.org/ns/synapse">
     <resource methods="POST" uri-template="/insurance/1.0.0/policy_creation">
         <inSequence>
+            <log category="INFO" logMessageID="false">
+                <message>............................................Insurance Policy Creation API request received........................................</message>
+            </log>
             <validate source="json-eval($)" cache-schema="true">
                 <schema key="resources:json/RequestValidationSchema.json" />
                 <on-fail>
                     <payloadFactory media-type="json" template-type="default">
-                        <format>{"ResponseHeader": {
-                            "status":"Error", "RequestId":12345, "ErrorMessage":"$1"}}</format>
+                        <format>{"ResponseHeader": { "status":"Error", "RequestId":12345,
+                            "ErrorMessage":"$1"}}</format>
                         <args>
-                            <arg expression="$ctx:ERROR_DETAIL" evaluator="xml" />
+                            <arg expression="$ctx:ERROR_MESSAGE" evaluator="xml" />
                         </args>
                     </payloadFactory>
                     <property name="HTTP_SC" value="400" scope="axis2" />
@@ -66,141 +69,165 @@
                 <property name="card_cvv" scope="default" type="STRING"
                     expression="${payload.PaymentInfo.CardCvv}" action="set" />
             </propertyGroup>
-            <log category="INFO" logMessageID="false" logFullPayload="false">
-                <message>${vars.PolicyDetailsPolicyType}</message>
-            </log>
             <call>
                 <endpoint key="ListInsurancePolicyEndpoint" />
             </call>
-
-            <property name="policyTypes" expression="json-eval($.policy_types)" scope="default" />
-            <log category="INFO" logMessageID="false" logFullPayload="false">
-                <message>oyoo</message>
-            </log>
-
-            <foreach expression="json-eval($.policy_types)">
-                <sequence>
-
-
-                    <variable name="currentPolicyId" type="STRING"
-                        expression="json-eval($.policy_type_id)" />
-                    <variable name="currentPolicyName" type="STRING" expression="json-eval($.name)" />
-                    <log category="INFO" logMessageID="false" logFullPayload="false">
-                        <message>Policy ID: ${vars.currentPolicyId}, Name: ${vars.currentPolicyName}</message>
-                    </log>
-
-                    <filter xpath="${vars.PolicyDetailsPolicyType == vars.currentPolicyId}">
-                        <then>
-                            <log category="INFO" logMessageID="false" logFullPayload="false">
-                                <message>${vars.FIRST_NAME}</message>
-                            </log>
+            <property name="HTTP_STATUS" expression="$axis2:HTTP_SC" scope="default" type="STRING" />
+            <filter xpath="$ctx:HTTP_STATUS != '200'">
+                <then>
+                    <payloadFactory media-type="json">
+                        <format>{"ResponseHeader": {"Status": "Error", "RequestId": "$1",
+                            "ErrorMessage": "List Insurance Policy Types API failed with status:
+                            $2"}}</format>
+                        <args>
+                            <arg expression="$ctx:RequestId" evaluator="xml" />
+                            <arg expression="$ctx:HTTP_STATUS" evaluator="xml" />
+                        </args>
+                    </payloadFactory>
+                    <property name="HTTP_SC" value="500" scope="axis2" />
+                    <respond />
+                </then>
+                <else>
+                    <property name="policyTypes" expression="json-eval($.policy_types)"
+                        scope="default" />
+                </else>
+            </filter>
 
 
-                            <payloadFactory media-type="json" template-type="default">
+            <iterate expression="json-eval($.policy_types)" continueParent="true" sequential="true">
+                <target>
+                    <sequence>
+                        <variable name="currentPolicyId" type="STRING"
+                            expression="json-eval($.policy_type_id)" />
+                        <variable name="currentPolicyName" type="STRING"
+                            expression="json-eval($.name)" />
 
-                                <format>
-                                    { "insertInsurancePolicy": { "FIRST_NAME":"${vars.FIRST_NAME}",
-                                    "LAST_NAME":"${vars.LAST_NAME}", "DOB": "${vars.DOB}",
-                                    "EMAIL":"${vars.EMAIL}", "MOBILE": "${vars.MOBILE}",
-                                    "POLICY_TYPE_ID":"${vars.currentPolicyId}",
-                                    "PAYMENT_METHOD":"${vars.PAYMENT_METHOD}" } } </format>
-                            </payloadFactory>
-                            <payloadFactory media-type="xml" template-type="default">
-                                <format>
-                                    <insertInsurancePolicy xmlns="http://ws.apache.org/ns/data">
-                                        <FIRST_NAME>
-                                    $1</FIRST_NAME>
-                                        <LAST_NAME>$2</LAST_NAME>
-                                        <DOB>$3</DOB>
-                                        <EMAIL>$4</EMAIL>
-                                        <MOBILE>$5</MOBILE>
-                                        <POLICY_TYPE_ID>$6</POLICY_TYPE_ID>
-                                        <PAYMENT_METHOD>
-                                    $7</PAYMENT_METHOD>
-                                    </insertInsurancePolicy>
-                                </format>
-                                <args>
-                                    <arg evaluator="json"
-                                        expression="$.insertInsurancePolicy.FIRST_NAME" />
-                                    <arg evaluator="json"
-                                        expression="$.insertInsurancePolicy.LAST_NAME" />
-                                    <arg evaluator="json" expression="$.insertInsurancePolicy.DOB" />
-                                    <arg evaluator="json" expression="$.insertInsurancePolicy.EMAIL" />
-                                    <arg evaluator="json"
-                                        expression="$.insertInsurancePolicy.MOBILE" />
-                                    <arg evaluator="json"
-                                        expression="$.insertInsurancePolicy.POLICY_TYPE_ID" />
-                                    <arg evaluator="json"
-                                        expression="$.insertInsurancePolicy.PAYMENT_METHOD" />
-                                </args>
-                            </payloadFactory>
+                        <filter xpath="${vars.PolicyDetailsPolicyType == vars.currentPolicyId}">
+                            <then>
 
-                            <property name="firstname" scope="default" type="STRING"
-                                expression="${vars.FIRST_NAME}" />
-                            <property name="LAST_NAME" scope="default" type="STRING"
-                                expression="${vars.LAST_NAME}" />
-                            <property name="DOB" scope="default" type="STRING"
-                                expression="${vars.DOB}" />
-                            <property name="EMAIL" scope="default" type="STRING"
-                                expression="${vars.EMAIL}" />
-                            <property name="MOBILE" scope="default" type="STRING"
-                                expression="${vars.MOBILE}" />
-                            <property name="POLICY_TYPE_ID" scope="default" type="STRING"
-                                expression="${vars.currentPolicyId}" />
-                            <property name="PAYMENT_METHOD" scope="default" type="STRING"
-                                expression="${vars.PAYMENT_METHOD}" />
-                            <dataServiceCall serviceName="InsuranceCreationService">
-                                <operations type="single">
-                                    <operation name="insertInsurancePolicy">
-                                        <param name="FIRST_NAME" expression="$ctx:firstname"
-                                            evaluator="xml" />
-                                        <param name="LAST_NAME" expression="$ctx:LAST_NAME"
-                                            evaluator="xml" />
-                                        <param name="DOB" expression="$ctx:DOB" evaluator="xml" />
-                                        <param name="EMAIL" expression="$ctx:EMAIL" evaluator="xml" />
-                                        <param name="MOBILE" expression="$ctx:MOBILE"
-                                            evaluator="xml" />
-                                        <param name="POLICY_TYPE_ID"
-                                            expression="$ctx:POLICY_TYPE_ID" evaluator="xml" />
-                                        <param name="PAYMENT_METHOD"
-                                            expression="$ctx:PAYMENT_METHOD" evaluator="xml" />
-                                    </operation>
-                                </operations>
-                                <source type="inline" />
-                                <target type="body" />
-                            </dataServiceCall>
 
-                            <log category="INFO" logMessageID="false" logFullPayload="false">
-                                <message>nimemalza ku insert</message>
-                            </log>
-                           
+                                <payloadFactory media-type="json" template-type="default">
+                                    <format> { "insertInsurancePolicy": {
+                                        "FIRST_NAME":"${vars.FIRST_NAME}",
+                                        "LAST_NAME":"${vars.LAST_NAME}", "DOB": "${vars.DOB}",
+                                        "EMAIL":"${vars.EMAIL}", "MOBILE": "${vars.MOBILE}",
+                                        "POLICY_TYPE_ID":"${vars.currentPolicyId}",
+                                        "PAYMENT_METHOD":"${vars.PAYMENT_METHOD}" } } </format>
+                                </payloadFactory>
 
-                            <log category="INFO" logMessageID="false" logFullPayload="false">
-                                <message>najiandaaa </message>
-                            </log>
-                            <log level="custom">
-                                <property name="CreationEndpointResponse" expression="json-eval($)" />
-                            </log>
-                            <log category="INFO" logMessageID="false" logFullPayload="false">
-                                <message>nimemalza</message>
-                            </log>
+                                <payloadFactory media-type="xml" template-type="default">
+                                    <format>
+                                        <insertInsurancePolicy xmlns="http://ws.apache.org/ns/data">
+                                            <FIRST_NAME>
+                                                $1</FIRST_NAME>
+                                            <LAST_NAME>$2</LAST_NAME>
+                                            <DOB>$3</DOB>
+                                            <EMAIL>$4</EMAIL>
+                                            <MOBILE>$5</MOBILE>
+                                            <POLICY_TYPE_ID>$6</POLICY_TYPE_ID>
+                                            <PAYMENT_METHOD>
+                                                $7</PAYMENT_METHOD>
+                                        </insertInsurancePolicy>
+                                    </format>
+                                    <args>
+                                        <arg evaluator="json"
+                                            expression="$.insertInsurancePolicy.FIRST_NAME" />
+                                        <arg evaluator="json"
+                                            expression="$.insertInsurancePolicy.LAST_NAME" />
+                                        <arg evaluator="json"
+                                            expression="$.insertInsurancePolicy.DOB" />
+                                        <arg evaluator="json"
+                                            expression="$.insertInsurancePolicy.EMAIL" />
+                                        <arg evaluator="json"
+                                            expression="$.insertInsurancePolicy.MOBILE" />
+                                        <arg evaluator="json"
+                                            expression="$.insertInsurancePolicy.POLICY_TYPE_ID" />
+                                        <arg evaluator="json"
+                                            expression="$.insertInsurancePolicy.PAYMENT_METHOD" />
+                                    </args>
+                                </payloadFactory>
 
-                        </then>
-                        <else>
+                                <property name="firstname" scope="default" type="STRING"
+                                    expression="${vars.FIRST_NAME}" />
+                                <property name="LAST_NAME" scope="default" type="STRING"
+                                    expression="${vars.LAST_NAME}" />
+                                <property name="DOB" scope="default" type="STRING"
+                                    expression="${vars.DOB}" />
+                                <property name="EMAIL" scope="default" type="STRING"
+                                    expression="${vars.EMAIL}" />
+                                <property name="MOBILE" scope="default" type="STRING"
+                                    expression="${vars.MOBILE}" />
+                                <property name="POLICY_TYPE_ID" scope="default" type="STRING"
+                                    expression="${vars.currentPolicyId}" />
+                                <property name="PAYMENT_METHOD" scope="default" type="STRING"
+                                    expression="${vars.PAYMENT_METHOD}" />
 
-                            <log category="INFO" logMessageID="false" logFullPayload="false">
-                                <message>sio huku</message>
-                            </log>
-                        </else>
-                    </filter>
-                </sequence>
-            </foreach>
-            <log category="INFO" logMessageID="false" logFullPayload="false">
-                <message>hello</message>
-            </log>
-             <payloadFactory media-type="json" template-type="default">
-                                <format>{
-                    "policy_holder": { "first_name": "${vars.FIRST_NAME}", "last_name":
+
+                                <dataServiceCall serviceName="InsuranceCreationService">
+                                    <operations type="single">
+                                        <operation name="insertInsurancePolicy">
+                                            <param name="FIRST_NAME" expression="$ctx:firstname"
+                                                evaluator="xml" />
+                                            <param name="LAST_NAME" expression="$ctx:LAST_NAME"
+                                                evaluator="xml" />
+                                            <param name="DOB" expression="$ctx:DOB" evaluator="xml" />
+                                            <param name="EMAIL" expression="$ctx:EMAIL"
+                                                evaluator="xml" />
+                                            <param name="MOBILE" expression="$ctx:MOBILE"
+                                                evaluator="xml" />
+                                            <param name="POLICY_TYPE_ID"
+                                                expression="$ctx:POLICY_TYPE_ID" evaluator="xml" />
+                                            <param name="PAYMENT_METHOD"
+                                                expression="$ctx:PAYMENT_METHOD" evaluator="xml" />
+                                        </operation>
+                                    </operations>
+                                    <source type="inline" />
+                                    <target type="property" name="insertResponse" />
+                                </dataServiceCall>
+
+                                <!-- Extract DID using local-name() approach -->
+                                <property name="DID"
+                                    expression="$ctx:insertResponse//*[local-name()='DID']/text()"
+                                    scope="operation"
+                                    type="STRING" />
+
+                                <!-- Debug logs to verify extraction -->
+                                <log category="INFO" logMessageID="false">
+                                    <property name="EXTRACTED_DID_VALUE" expression="$ctx:DID" />
+                                    <property name="DID_TYPE"
+                                        expression="fn:string-length($ctx:DID)" />
+                                </log>
+
+                                <!-- Conditional check to ensure DID was extracted -->
+                                <filter xpath="string-length($ctx:DID) > 0">
+                                    <then>
+                                        <log category="INFO" logMessageID="false">
+                                            <property name="SUCCESS_MESSAGE"
+                                                value="DID successfully extracted" />
+                                            <property name="DID_VALUE" expression="$ctx:DID" />
+                                        </log>
+                                    </then>
+                                    <else>
+                                        <log category="ERROR" logMessageID="false">
+                                            <property name="ERROR_MESSAGE"
+                                                value="Failed to extract DID from response" />
+                                            <property name="RAW_RESPONSE"
+                                                expression="$ctx:insertResponse" />
+                                        </log>
+                                    </else>
+                                </filter>
+
+                            </then>
+                            <else>
+
+                            </else>
+                        </filter>
+                    </sequence>
+                </target>
+            </iterate>
+
+            <payloadFactory media-type="json" template-type="default">
+                <format>{ "policy_holder": { "first_name": "${vars.FIRST_NAME}", "last_name":
                     "${vars.LAST_NAME}", "date_of_birth": "${vars.DOB}", "gender":
                     "${properties.synapse.gender}", "contact_info": { "email": "${vars.EMAIL}",
                     "phone": "${vars.MOBILE}", "address": { "street":
@@ -222,13 +249,94 @@
                     "${properties.synapse.card_exp_date}", "card_cvv":
                     "${properties.synapse.card_cvv}" } }</format>
             </payloadFactory>
+
             <call>
                 <endpoint key="InsurancePolicyCreationEndpoint" />
-
             </call>
+            <property name="HTTP_STATUS" expression="$axis2:HTTP_SC" scope="default" type="STRING" />
+            <filter xpath="$ctx:HTTP_STATUS != '200'">
+                <then>
+                    <payloadFactory media-type="json">
+                        <format>{"ResponseHeader": {"Status": "Error", "RequestId": "$1",
+                            "ErrorMessage": "Insurance Policy Creation API failed with status: $2"}}</format>
+                        <args>
+                            <arg expression="$ctx:RequestId" evaluator="xml" />
+                            <arg expression="$ctx:HTTP_STATUS" evaluator="xml" />
+                        </args>
+                    </payloadFactory>
+                    <property name="HTTP_SC" value="500" scope="axis2" />
+                    <respond />
+                </then>
+                <else>
+                    <property name="mockResponse" expression="json-eval($)" scope="default" />
+                </else>
+            </filter>
+
+            <!-- Extract POLICY_ID from response -->
+            <property name="POLICY_ID" expression="json-eval($.policy_id)" scope="default"
+                type="STRING" />
+
+            <!-- Ensure all required properties are available for final response -->
+            <property name="EMAIL" expression="$ctx:EMAIL" scope="default" type="STRING" />
+            <property name="DID" expression="get-property('operation','DID')
+" scope="default"
+                type="STRING" />
+            <property name="CURRENT_TIMESTAMP" expression="get-property('SYSTEM_DATE')"
+                scope="default" type="STRING" />
+
+            <!-- Debug: Check all values before creating response -->
+            <log category="INFO" logMessageID="false">
+                <property name="BEFORE_RESPONSE_POLICY_ID" expression="$ctx:POLICY_ID" />
+                <property name="BEFORE_RESPONSE_DID" expression="$ctx:DID" />
+                <property name="BEFORE_RESPONSE_EMAIL" expression="$ctx:EMAIL" />
+                <property name="BEFORE_RESPONSE_TIMESTAMP" expression="$ctx:CURRENT_TIMESTAMP" />
+            </log>
+
+            <!-- Store message in message store with DID -->
+            <payloadFactory media-type="json">
+                <format>{"MESSAGE_TYPE": "POLICY_ID_UPDATE", "POLICY_ID": "$1", "DID": "$2",
+                    "UPDATED_AT": "$4"}</format>
+                <args>
+                    <arg evaluator="xml" expression="$ctx:POLICY_ID" />
+                    <arg evaluator="xml" expression="$ctx:DID" />
+                    <arg evaluator="xml" expression="$ctx:EMAIL" />
+                    <arg evaluator="xml" expression="$ctx:CURRENT_TIMESTAMP" />
+                </args>
+            </payloadFactory>
+
+            <store messageStore="INS_DSS_QUEUE" />
+
+            <!-- Create final response payload with DID -->
+            <payloadFactory media-type="json">
+                <format>{"MESSAGE_TYPE": "POLICY_ID_UPDATE", "POLICY_ID": "$1", "DID": "$2",
+                    "EMAIL": "$3", "UPDATED_AT": "$4"}</format>
+                <args>
+                    <arg evaluator="xml" expression="$ctx:POLICY_ID" />
+                    <arg evaluator="xml" expression="$ctx:DID" />
+                    <arg evaluator="xml" expression="$ctx:EMAIL" />
+                    <arg evaluator="xml" expression="$ctx:CURRENT_TIMESTAMP" />
+                </args>
+            </payloadFactory>
+
+            <!-- Final debug log -->
+            <log category="INFO" logMessageID="false">
+                <property name="FINAL_RESPONSE_PAYLOAD" expression="json-eval($)" />
+            </log>
+
             <respond />
         </inSequence>
         <faultSequence>
-</faultSequence>
+
+            <payloadFactory media-type="json">
+                <format>{"ResponseHeader": {"Status": "Error", "RequestId": "$1", "ErrorMessage":
+                    "$2"}}</format>
+                <args>
+                    <arg expression="$ctx:RequestId" evaluator="xml" />
+                    <arg expression="$ctx:ERROR_MESSAGE" evaluator="xml" />
+                </args>
+            </payloadFactory>
+            <property name="HTTP_SC" value="500" scope="axis2" />
+            <respond />
+        </faultSequence>
     </resource>
 </api>

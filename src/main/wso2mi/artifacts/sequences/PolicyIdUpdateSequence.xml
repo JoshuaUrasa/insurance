@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="PolicyIdUpdateSequence">
+    <!-- Extract fields from JSON payload -->
+    <property name="DID" expression="json-eval($.DID)" scope="default" type="STRING" />
+    <property name="POLICY_ID" expression="json-eval($.POLICY_ID)" scope="default" type="STRING" />
+    <property name="UPDATED_AT" expression="json-eval($.UPDATED_AT)" scope="default" type="STRING" />
+    <property name="STATUS" value="PENDING_APPROVAL" scope="default" type="STRING" />
+
+    <!-- Log extracted values for debugging -->
+    <log level="custom" category="INFO">
+        <property name="DID" expression="$ctx:DID" />
+        <property name="POLICY_ID" expression="$ctx:POLICY_ID" />
+        <property name="UPDATED_AT" expression="$ctx:UPDATED_AT" />
+        <property name="STATUS" expression="$ctx:STATUS" />
+    </log>
+
+    <!-- Call updatePolicyStatus operation -->
+    <dataServiceCall serviceName="InsuranceCreationService">
+        <operations type="single">
+            <operation name="updatePolicyStatus">
+                <param name="STATUS" expression="$ctx:STATUS" evaluator="xml" />
+                <param name="POLICY_ID" expression="$ctx:POLICY_ID" evaluator="xml" />
+                <param name="DID" expression="$ctx:DID" evaluator="xml" />
+            </operation>
+        </operations>
+        <source type="inline" />
+        <target type="property" name="updateResponse" />
+    </dataServiceCall>
+
+    <!-- Log update result -->
+    <log level="custom" category="INFO">
+        <property name="UPDATE_RESPONSE" expression="$ctx:updateResponse" />
+        <property name="HTTP_STATUS" expression="$axis2:HTTP_SC" />
+    </log>
+</sequence>
