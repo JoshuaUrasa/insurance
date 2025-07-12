@@ -1,0 +1,15 @@
+{
+  "type": "API",
+  "/{policy_id}": {
+    "requests": [
+      {
+        "name": "querySample",
+        "queryParams": {
+          "policy_id": "POL1234567890"
+        },
+        "pathParams": {}
+      }
+    ],
+    "defaultRequest": "querySample"
+  }
+}

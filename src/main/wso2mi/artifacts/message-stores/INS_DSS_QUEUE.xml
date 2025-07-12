@@ -1,0 +1,11 @@
+<messageStore class="org.apache.synapse.message.store.impl.jms.JmsStore"
+    name="INS_DSS_QUEUE" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="java.naming.factory.initial">org.apache.activemq.jndi.ActiveMQInitialContextFactory</parameter>
+    <parameter name="java.naming.provider.url">tcp://lastborn:61616</parameter>
+    <parameter name="store.jms.destination">INS_DSS_QUEUE</parameter>
+    <parameter name="store.jms.connection.factory">QueueConnectionFactory</parameter>
+    <parameter name="store.jms.JMSSpecVersion">1.1</parameter>
+    <parameter name="store.jms.cache.connection">false</parameter>
+    <parameter name="store.jms.retry.count">3</parameter>
+    <parameter name="store.jms.retry.delay">1000</parameter>
+</messageStore>

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="ProcessApprovePendingSequence" trace="enable" xmlns="http://ws.apache.org/ns/synapse">
+    <log level="custom" category="INFO">
+        <property name="Sequence" value="Starting ProcessApprovePendingSequence"/>
+    </log>
+
+    <property name="ns" value="http://ws.wso2.org/dataservice"/>
+    <property name="soapenv" value="http://schemas.xmlsoap.org/soap/envelope/"/>
+
+    <call>
+        <endpoint>
+            <http method="GET" uri-template="http://localhost:8290/services/InsuranceCreationService/fetchPendingInsurance"/>
+        </endpoint>
+    </call>
+    
+    <filter xpath="count(//ns:Insurance/ns:Insurance) > 0" xmlns:ns="http://ws.wso2.org/dataservice">
+        <then>
+
+            <property name="daysThreshold" value="1" scope="default" type="INTEGER"/>
+            <property name="ERROR_CODE" scope="axis2" action="remove"/>
+            <property name="ERROR_MESSAGE" scope="axis2" action="remove"/>
+
+
+            <payloadFactory media-type="xml">
+                <format>
+                    <p:updateExpiredRecords xmlns:p="http://ws.wso2.org/dataservice">
+                        <p:daysThreshold>$1</p:daysThreshold>
+                    </p:updateExpiredRecords>
+                </format>
+                <args>
+                    <arg expression="get-property('daysThreshold')"/>
+                </args>
+            </payloadFactory>
+
+            <call>
+                <endpoint>
+                    <http method="POST" uri-template="http://localhost:8290/services/InsuranceCreationService/updateExpiredRecords"/>
+                </endpoint>
+            </call>
+
+            <filter xpath="get-property('ERROR_CODE') != '' or get-property('ERROR_MESSAGE') != ''">
+                <then>
+                   
+                    <loopback/>
+                </then>
+                <else>
+                   
+                </else>
+            </filter>
+        </then>
+        <else>
+            
+        </else>
+    </filter>
+
+
+    <log level="custom" category="INFO">
+        <property name="Sequence" value="Completed ProcessApprovePendingSequence"/>
+    </log>
+</sequence>

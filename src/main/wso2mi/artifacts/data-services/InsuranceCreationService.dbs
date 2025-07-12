@@ -1,56 +1,97 @@
-<data name="InsuranceCreationService" serviceNamespace="" serviceGroup="" transports="http https"
-    disableStreaming="true">
-    <description />
+<?xml version="1.0" encoding="UTF-8"?>
+<data name="InsuranceCreationService"
+      serviceNamespace="http://ws.wso2.org/dataservice"
+      transports="https http"
+      disableStreaming="true">
+    <description>Insurance Policy Creation Data Service</description>
     <config id="insuranceService">
-        <property name="driverClassName">com.mysql.jdbc.Driver</property>
+        <property name="driverClassName">com.mysql.cj.jdbc.Driver</property>
         <property name="url">jdbc:mysql://localhost:3306/insurance</property>
         <property name="username">root</property>
     </config>
-
-    <query id="InsertInsurancePolicyQuery" useConfig="insuranceService"
-        xmlns="http://ws.apache.org/ns/data">
+    
+    <query id="InsertInsurancePolicyQuery" useConfig="insuranceService" returnGeneratedKeys="true">
         <sql>
             INSERT INTO INSURANCE_POLICY_DATA (
-            FIRST_NAME,
-            LAST_NAME,
-            DOB,
-            EMAIL,
-            MOBILE,
-            POLICY_TYPE_ID,
-            PAYMENT_METHOD,
-            STATUS,
-            CREATED_AT,
-            UPDATED_AT
+                FIRST_NAME, LAST_NAME, DOB, EMAIL, MOBILE, POLICY_TYPE_ID, PAYMENT_METHOD,
+                POLICY_ID, STATUS, CREATED_AT, UPDATED_AT
             ) VALUES (
-            :FIRST_NAME,
-            :LAST_NAME,
-            STR_TO_DATE(:DOB, '%Y-%m-%d'),
-            :EMAIL,
-            :MOBILE,
-            :POLICY_TYPE_ID,
-            :PAYMENT_METHOD,
-            'PENDING_APPROVAL',
-            NOW(),
-            NOW()
+                ?, ?, STR_TO_DATE(?, '%Y-%m-%d'),
+                ?, ?, ?, ?,
+                NULL, 'PENDING_APPROVAL', NOW(), NOW()
             )
         </sql>
-        <param name="FIRST_NAME" sqlType="STRING" />
-        <param name="LAST_NAME" sqlType="STRING" />
-        <param name="DOB" sqlType="STRING" />
-        <param name="EMAIL" sqlType="STRING" />
-        <param name="MOBILE" sqlType="STRING" />
-        <param name="POLICY_TYPE_ID" sqlType="STRING" />
-        <param name="PAYMENT_METHOD" sqlType="STRING" />
+        <param name="FIRST_NAME" sqlType="STRING" ordinal="1"/>
+        <param name="LAST_NAME" sqlType="STRING" ordinal="2"/>
+        <param name="DOB" sqlType="STRING" ordinal="3"/>
+        <param name="EMAIL" sqlType="STRING" ordinal="4"/>
+        <param name="MOBILE" sqlType="STRING" ordinal="5"/>
+        <param name="POLICY_TYPE_ID" sqlType="STRING" ordinal="6"/>
+        <param name="PAYMENT_METHOD" sqlType="STRING" ordinal="7"/>
+        <result element="insertResult" rowName="generatedKeys">
+            <element name="DID" column="GENERATED_KEY" xsdType="xs:integer"/>
+        </result>
     </query>
+    
     <operation name="insertInsurancePolicy">
         <call-query href="InsertInsurancePolicyQuery">
-            <with-param name="FIRST_NAME" query-param="FIRST_NAME" />
-            <with-param name="LAST_NAME" query-param="LAST_NAME" />
-            <with-param name="DOB" query-param="DOB" />
-            <with-param name="EMAIL" query-param="EMAIL" />
-            <with-param name="MOBILE" query-param="MOBILE" />
-            <with-param name="POLICY_TYPE_ID" query-param="POLICY_TYPE_ID" />
-            <with-param name="PAYMENT_METHOD" query-param="PAYMENT_METHOD" />
+            <with-param name="FIRST_NAME" query-param="FIRST_NAME"/>
+            <with-param name="LAST_NAME" query-param="LAST_NAME"/>
+            <with-param name="DOB" query-param="DOB"/>
+            <with-param name="EMAIL" query-param="EMAIL"/>
+            <with-param name="MOBILE" query-param="MOBILE"/>
+            <with-param name="POLICY_TYPE_ID" query-param="POLICY_TYPE_ID"/>
+            <with-param name="PAYMENT_METHOD" query-param="PAYMENT_METHOD"/>
+        </call-query>
+    </operation>
+
+    <query id="fetchPendingInsurance" useConfig="insuranceService">
+        <sql>SELECT DID, FIRST_NAME, STATUS, CREATED_AT, UPDATED_AT FROM INSURANCE_POLICY_DATA WHERE STATUS = 'PENDING_APPROVAL'</sql>
+        <result element="Insurance" rowName="Insurance">
+            <element name="Id" column="DID" xsdType="integer"/>
+            <element name="firstname" column="FIRST_NAME" xsdType="string"/>
+            <element name="status" column="STATUS" xsdType="string" optional="true"/>
+            <element name="createdAt" column="CREATED_AT" xsdType="dateTime"/>
+            <element name="updatedAt" column="UPDATED_AT" xsdType="dateTime"/>
+        </result>
+    </query>
+    
+    <operation name="fetchPendingInsurance">
+        <call-query href="fetchPendingInsurance"/>
+    </operation>
+
+    <query id="updateExpiredRecordsQuery" useConfig="insuranceService">
+        <sql>
+            UPDATE INSURANCE_POLICY_DATA 
+            SET STATUS = 'CANCELLED', UPDATED_AT = NOW() 
+            WHERE STATUS = 'PENDING_APPROVAL' 
+            AND DATEDIFF(NOW(), CREATED_AT) >= ?
+        </sql>
+        <param name="daysThreshold" sqlType="INTEGER" ordinal="1"/>
+    </query>
+    
+    <operation name="updateExpiredRecords">
+        <call-query href="updateExpiredRecordsQuery">
+            <with-param name="daysThreshold" query-param="daysThreshold"/>
+        </call-query>
+    </operation>
+
+    <query id="updatePolicyStatusQuery" useConfig="insuranceService">
+        <sql>
+            UPDATE INSURANCE_POLICY_DATA 
+            SET STATUS = ?, POLICY_ID = ?, UPDATED_AT = NOW()
+            WHERE DID = ?
+        </sql>
+        <param name="STATUS" sqlType="STRING" ordinal="1"/>
+        <param name="POLICY_ID" sqlType="STRING" ordinal="2"/>
+        <param name="DID" sqlType="INTEGER" ordinal="3"/>
+    </query>
+    
+    <operation name="updatePolicyStatus">
+        <call-query href="updatePolicyStatusQuery">
+            <with-param name="STATUS" query-param="STATUS"/>
+            <with-param name="POLICY_ID" query-param="POLICY_ID"/>
+            <with-param name="DID" query-param="DID"/>
         </call-query>
     </operation>
 </data>

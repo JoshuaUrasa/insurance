@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/insurance/1.0.0/view_policy" name="ViewPolicyDetailsAPI"
+    xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="GET" uri-template="/?policy_id={policy_id}">
+        <inSequence>
+
+            <log category="INFO" logMessageID="false" logFullPayload="false">
+                <message>${params.queryParams.policy_id}</message>
+            </log>
+
+
+            <property name="uri.var.policy_id" scope="default" type="STRING"
+                expression="${params.queryParams.policy_id}" />
+
+            <call>
+                <endpoint key="ViewPolicyDetailsEndpoint" />
+
+            </call>
+            <variable name="PolicyId" type="STRING" expression="json-eval($.policy_id)" />
+            <variable name="PolicyHolder" type="STRING" expression="json-eval($.policy_holder)" />
+            <variable name="PolicyDetails" type="STRING" expression="json-eval($.policy_details)" />
+            <variable name="beneficiaries" type="STRING" expression="json-eval($.beneficiaries)" />
+            <variable name="PaymentInfo" type="STRING" expression="json-eval($.payment_info)" />
+            <payloadFactory media-type="json" template-type="default">
+
+                <format>
+                    {"ResponseHeader":
+                    {"status":"ok","RequestId":12345},"ResponseBody":{"PolicyId":"${vars.PolicyId}","PolicyHolder":${vars.PolicyHolder},"PolicyDetails":${vars.PolicyDetails},"Beneficiaries":${vars.beneficiaries},"PaymentInfo":${vars.PaymentInfo}}}</format>
+            </payloadFactory>
+            <respond />
+        </inSequence>
+        <faultSequence>
+
+        </faultSequence>
+    </resource>
+</api>
