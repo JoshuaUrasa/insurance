@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="MessageRouterSequence">
+    
+    <log category="INFO" description="Message received in router sequence" level="full">
+        <property name="message" value="Processing message from INS_DSS_QUEUE" />
+        <property name="payload" expression="json-eval($)" />
+    </log>
+    
+    <!-- Check if MESSAGE_TYPE exists and route accordingly -->
+    <switch source="json-eval($.MESSAGE_TYPE)">
+        
+        <!-- Route for Policy ID Update messages -->
+        <case regex="POLICY_ID_UPDATE">
+            <log category="INFO" description="Routing to Policy Update Logic">
+                <property name="message" value="Processing POLICY_ID_UPDATE message - calling PolicyIdUpdateSequence" />
+            </log>
+            
+            <!-- Call the existing PolicyIdUpdateSequence -->
+            <sequence key="PolicyIdUpdateSequence" />
+        </case>
+        
+        <!-- Route for Policy Approval messages -->
+        <case regex="POLICY_APPROVAL">
+            <log category="INFO" description="Routing to Policy Approval Logic">
+                <property name="message" value="Processing POLICY_APPROVAL message - calling ApproveInsuranceSequence" />
+            </log>
+            
+            <!-- Call the existing ApproveInsuranceSequence -->
+            <sequence key="ApproveInsuranceSequence" />
+        </case>
+        
+        <!-- Default case for messages without MESSAGE_TYPE (like current approval messages) -->
+        <default>
+            <log category="INFO" description="Processing message without MESSAGE_TYPE - treating as approval">
+                <property name="message" value="Request Received for Approve Pending - Default Route - calling ApproveInsuranceSequence" />
+            </log>
+            
+            <!-- Call the existing ApproveInsuranceSequence for backward compatibility -->
+            <sequence key="ApproveInsuranceSequence" />
+        </default>
+    </switch>
+    
+</sequence>

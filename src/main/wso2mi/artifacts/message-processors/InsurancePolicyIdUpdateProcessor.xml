@@ -2,7 +2,7 @@
 <messageProcessor class="org.apache.synapse.message.processor.impl.sampler.SamplingProcessor"
     name="InsurancePolicyIdUpdateProcessor" messageStore="INS_DSS_QUEUE"
     xmlns="http://ws.apache.org/ns/synapse">
-    <parameter name="sequence">PolicyIdUpdateSequence</parameter>
+    <parameter name="sequence">MessageRouterSequence</parameter>
     <parameter name="interval">1000</parameter>
     <parameter name="is.active">true</parameter>
     <parameter name="concurrency">1</parameter>

@@ -1,0 +1,20 @@
+{
+  "type": "API",
+  "/": {
+    "requests": [
+      {
+        "name": "approveinsurance",
+        "contentType": "application/json",
+        "content": {
+          "PolicyId": "POL1234567890",
+          "ManagerId": "MGR9876543210",
+          "ApprovalStatus": "APPROVED",
+          "Comments": "All documents are verified. Policy is approved."
+        },
+        "queryParams": {},
+        "pathParams": {}
+      }
+    ],
+    "defaultRequest": "approveinsurance"
+  }
+}

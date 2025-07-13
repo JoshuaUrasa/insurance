@@ -289,7 +289,7 @@
                 </args>
             </payloadFactory>
 
-            <store messageStore="INS_DSS_QUEUE" />
+            <store messageStore="INS_DSS_QUEUE" sequence="MessageRouterSequence" />
 
             <payloadFactory media-type="json">
                 <format>{"MESSAGE_TYPE": "POLICY_ID_UPDATE", "POLICY_ID": "$1", "DID": "$2",

@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence xmlns="http://ws.apache.org/ns/synapse" name="ApproveInsuranceSequence">
+    <log category="INFO" description="consume message from the store" level="full">
+        <property name="message" value="................................................................................................. Request Received for Approve Pending.................................................." />
+    </log>
+    
+    <!-- Extract properties from the message -->
+    <property name="policy_id" expression="json-eval($.policy_id)" />
+    <property name="approval_status" expression="json-eval($.approval_status)" />
+    <property name="approved_at" expression="json-eval($.approved_at)" />
+    
+    <!-- Convert approval status to uppercase for validation -->
+    <property name="approval_status_upper" expression="fn:upper-case(get-property('approval_status'))" />
+    
+    <!-- Convert approval status to database status value -->
+    <switch source="get-property('approval_status_upper')">
+        <case regex="APPROVED">
+            <property name="database_status" value="ACTIVE" />
+        </case>
+        <case regex="REJECTED">
+            <property name="database_status" value="REJECTED" />
+        </case>
+        <default>
+            <property name="database_status" expression="get-property('approval_status_upper')" />
+        </default>
+    </switch>
+    
+    <!-- Log the extracted values -->
+    <log category="INFO" description="Processing policy approval">
+        <property name="policy_id" expression="get-property('policy_id')" />
+        <property name="approval_status_original" expression="get-property('approval_status')" />
+        <property name="approval_status_upper" expression="get-property('approval_status_upper')" />
+        <property name="database_status" expression="get-property('database_status')" />
+        <property name="approved_at" expression="get-property('approved_at')" />
+    </log>
+    
+    <!-- Validate that we have the required fields -->
+    <filter xpath="fn:string-length(get-property('policy_id')) = 0">
+        <then>
+            <log category="ERROR">
+                <message>Policy ID is missing from the message</message>
+            </log>
+            <drop />
+        </then>
+    </filter>
+    
+    <filter xpath="fn:string-length(get-property('approval_status')) = 0">
+        <then>
+            <log category="ERROR">
+                <message>Approval status is missing from the message</message>
+            </log>
+            <drop />
+        </then>
+    </filter>
+    
+    <!-- Validate approval status is either APPROVED or REJECTED (case insensitive) -->
+    <filter xpath="fn:upper-case(get-property('approval_status')) != 'APPROVED' and fn:upper-case(get-property('approval_status')) != 'REJECTED'">
+        <then>
+            <log category="ERROR">
+                <message>Invalid approval status. Must be APPROVED or REJECTED</message>
+            </log>
+            <drop />
+        </then>
+    </filter>
+    
+    <!-- Log before calling data service -->
+    <log category="INFO" description="Calling data service to update policy status">
+        <property name="message" value="Updating policy status in database" />
+        <property name="policy_id" expression="get-property('policy_id')" />
+        <property name="approval_status" expression="get-property('approval_status_upper')" />
+        <property name="database_status" expression="get-property('database_status')" />
+    </log>
+    
+    <!-- Call the data service to update the policy status -->
+    <dataServiceCall serviceName="InsuranceCreationService">
+        <operations type="single">
+            <operation name="approvePolicyByPolicyId">
+                <param name="STATUS" expression="$ctx:database_status" evaluator="xml" />
+                <param name="POLICY_ID" expression="$ctx:policy_id" evaluator="xml" />
+            </operation>
+        </operations>
+        <source type="inline" />
+        <target type="property" name="approvalResponse" />
+    </dataServiceCall>
+    
+    <!-- Log the data service response -->
+    <log category="INFO" description="Data service response received">
+        <property name="message" value="Policy approval/rejection processed" />
+        <property name="policy_id" expression="get-property('policy_id')" />
+        <property name="approval_decision" expression="get-property('approval_status_upper')" />
+        <property name="status_saved_to_db" expression="get-property('database_status')" />
+        <property name="response" expression="get-property('approvalResponse')" />
+    </log>
+    
+    <!-- Optional: Send notification or trigger other processes based on approval status -->
+    <switch source="get-property('approval_status_upper')">
+        <case regex="APPROVED">
+            <log category="INFO">
+                <property name="message" value="Policy has been APPROVED - triggering post-approval processes" />
+                <property name="policy_id" expression="get-property('policy_id')" />
+            </log>
+            
+            <!-- Here you can add calls to:
+                 - Send approval notification to customer
+                 - Trigger policy document generation
+                 - Update external systems
+                 - etc.
+            -->
+        </case>
+        
+        <case regex="REJECTED">
+            <log category="INFO">
+                <property name="message" value="Policy has been REJECTED - triggering post-rejection processes" />
+                <property name="policy_id" expression="get-property('policy_id')" />
+            </log>
+            
+            <!-- Here you can add calls to:
+                 - Send rejection notification to customer
+                 - Trigger refund processes if applicable
+                 - Update external systems
+                 - etc.
+            -->
+        </case>
+    </switch>
+    
+    <log category="INFO" description="ApproveInsuranceSequence completed">
+        <property name="message" value="................................................................................................. Approve Pending Processing Completed.................................................." />
+    </log>
+</sequence>
