@@ -94,4 +94,22 @@
             <with-param name="DID" query-param="DID"/>
         </call-query>
     </operation>
+
+    <!-- NEW QUERY FOR APPROVAL/REJECTION BY POLICY_ID -->
+    <query id="approvePolicyByPolicyIdQuery" useConfig="insuranceService">
+        <sql>
+            UPDATE INSURANCE_POLICY_DATA 
+            SET STATUS = ?, UPDATED_AT = NOW()
+            WHERE POLICY_ID = ?
+        </sql>
+        <param name="STATUS" sqlType="STRING" ordinal="1"/>
+        <param name="POLICY_ID" sqlType="STRING" ordinal="2"/>
+    </query>
+    
+    <operation name="approvePolicyByPolicyId">
+        <call-query href="approvePolicyByPolicyIdQuery">
+            <with-param name="STATUS" query-param="STATUS"/>
+            <with-param name="POLICY_ID" query-param="POLICY_ID"/>
+        </call-query>
+    </operation>
 </data>

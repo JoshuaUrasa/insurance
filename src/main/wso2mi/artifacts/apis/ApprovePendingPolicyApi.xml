@@ -6,92 +6,110 @@
             <log category="INFO" logMessageID="false" logFullPayload="false">
                 <message>................................................................................................. Request Received for Approve Pending..................................................</message>
             </log>
-            
-            <property name="PolicyId" expression="json-eval($.PolicyId)"/>
-            <property name="ManagerId" expression="json-eval($.ManagerId)"/>
-            <property name="ApprovalStatus" expression="json-eval($.ApprovalStatus)"/>
-            <property name="Comments" expression="json-eval($.Comments)"/>
-            
 
-    
+            <property name="PolicyId" expression="json-eval($.PolicyId)" />
+            <property name="ManagerId" expression="json-eval($.ManagerId)" />
+            <property name="ApprovalStatus" expression="json-eval($.ApprovalStatus)" />
+            <property name="Comments" expression="json-eval($.Comments)" />
+
+            <!-- Validation: PolicyId -->
             <filter xpath="fn:string-length(get-property('PolicyId')) = 0">
                 <then>
                     <log category="ERROR">
                         <message>PolicyId is mandatory and cannot be empty</message>
                     </log>
                     <payloadFactory media-type="json">
-                        <format>
-                            {
-                                "error": "BAD_REQUEST",
-                                "message": "PolicyId is mandatory",
-                                "code": 400
-                            }
-                        </format>
+                        <format> { "error": "BAD_REQUEST", "message": "PolicyId is mandatory",
+                            "code": 400 } </format>
                     </payloadFactory>
-                    <property name="HTTP_SC" value="400" scope="axis2"/>
-                    <respond/>
+                    <property name="HTTP_SC" value="400" scope="axis2" />
+                    <respond />
                 </then>
             </filter>
-            
+
+            <!-- Validation: ManagerId -->
             <filter xpath="fn:string-length(get-property('ManagerId')) = 0">
                 <then>
                     <log category="ERROR">
                         <message>ManagerId is mandatory and cannot be empty</message>
                     </log>
                     <payloadFactory media-type="json">
-                        <format>
-                            {
-                                "error": "BAD_REQUEST",
-                                "message": "ManagerId is mandatory",
-                                "code": 400
-                            }
-                        </format>
+                        <format> { "error": "BAD_REQUEST", "message": "ManagerId is mandatory",
+                            "code": 400 } </format>
                     </payloadFactory>
-                    <property name="HTTP_SC" value="400" scope="axis2"/>
-                    <respond/>
+                    <property name="HTTP_SC" value="400" scope="axis2" />
+                    <respond />
                 </then>
             </filter>
-            
+
+            <!-- Validation: ApprovalStatus -->
             <filter xpath="fn:string-length(get-property('ApprovalStatus')) = 0">
                 <then>
                     <log category="ERROR">
                         <message>ApprovalStatus is mandatory and cannot be empty</message>
                     </log>
                     <payloadFactory media-type="json">
-                        <format>
-                            {
-                                "error": "BAD_REQUEST",
-                                "message": "ApprovalStatus is mandatory",
-                                "code": 400
-                            }
-                        </format>
+                        <format> { "error": "BAD_REQUEST", "message": "ApprovalStatus is mandatory",
+                            "code": 400 } </format>
                     </payloadFactory>
-                    <property name="HTTP_SC" value="400" scope="axis2"/>
-                    <respond/>
+                    <property name="HTTP_SC" value="400" scope="axis2" />
+                    <respond />
                 </then>
             </filter>
-            
-            
-            <filter xpath="get-property('ApprovalStatus') != 'APPROVED' and get-property('ApprovalStatus') != 'REJECTED'">
+
+            <!-- Validation: ApprovalStatus values -->
+            <filter
+                xpath="get-property('ApprovalStatus') != 'APPROVED' and get-property('ApprovalStatus') != 'REJECTED'">
                 <then>
                     <log category="ERROR">
                         <message>ApprovalStatus must be either APPROVED or REJECTED</message>
                     </log>
                     <payloadFactory media-type="json">
-                        <format>
-                            {
-                                "error": "BAD_REQUEST",
-                                "message": "ApprovalStatus must be either APPROVED or REJECTED",
-                                "code": 400
-                            }
-                        </format>
+                        <format> { "error": "BAD_REQUEST", "message": "ApprovalStatus must be either
+                            APPROVED or REJECTED", "code": 400 } </format>
                     </payloadFactory>
-                    <property name="HTTP_SC" value="400" scope="axis2"/>
-                    <respond/>
+                    <property name="HTTP_SC" value="400" scope="axis2" />
+                    <respond />
                 </then>
             </filter>
+
+            <!-- All validations passed - proceed with backend call -->
+            <property name="uri.var.policy_id" scope="default" type="STRING"
+                expression="get-property('PolicyId')" />
+
+            <payloadFactory media-type="json" template-type="default">
+                <format> { "manager_id": "${properties.synapse.ManagerId}", "approval_status":
+                    "${properties.synapse.ApprovalStatus}", "comments":
+                    "${properties.synapse.Comments}" } </format>
+            </payloadFactory>
+
+            <call>
+                <endpoint key="ApproveInsuranceEndpoint" />
+            </call>
+
+            <property name="policy_id" expression="json-eval($.policy_id)" />
+            <property name="approval_status" expression="json-eval($.approval.approval_status)" />
+            <property name="approved_at" expression="get-property('SYSTEM_DATE')"
+                scope="default" type="STRING" />
+
+            <payloadFactory media-type="json" template-type="default">
+                <format>
+                    {"MESSAGE_TYPE":"POLICY_APPROVAL","policy_id":"${properties.synapse.policy_id}","approval_status":"${properties.synapse.approval_status}","approved_at":"${properties.synapse.approved_at}"}
+                    </format>
+            </payloadFactory>
+            <store messageStore="INS_DSS_QUEUE" sequence="MessageRouterSequence" />
+            <respond />
         </inSequence>
         <faultSequence>
+            <log category="ERROR">
+                <message>Error occurred while processing policy approval request</message>
+            </log>
+            <payloadFactory media-type="json">
+                <format> { "error": "INTERNAL_SERVER_ERROR", "message": "An error occurred while
+                    processing the request", "code": 500 } </format>
+            </payloadFactory>
+            <property name="HTTP_SC" value="500" scope="axis2" />
+            <respond />
         </faultSequence>
     </resource>
 </api>
