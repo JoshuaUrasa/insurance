@@ -83,6 +83,10 @@
                     "${properties.synapse.Comments}" } </format>
             </payloadFactory>
 
+
+
+    <header name="x-api-key" expression="wso2:vault-lookup('x-api-key')" scope="transport"/>
+
             <call>
                 <endpoint key="ApproveInsuranceEndpoint" />
             </call>
