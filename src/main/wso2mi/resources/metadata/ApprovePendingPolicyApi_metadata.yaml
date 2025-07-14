@@ -4,7 +4,7 @@ name : "ApprovePendingPolicyApi"
 displayName : "ApprovePendingPolicyApi"
 description: "ApprovePendingPolicyApi"
 version: "1.0.0"
-serviceUrl: "https://{MI_HOST}:{MI_PORT}/insurance/1.0.0/policy_approval"
+serviceUrl: "https://localhost:8290/insurance/1.0.0/policy_approval"
 definitionType: "OAS3"
 securityType: "BASIC"
 mutualSSLEnabled: false

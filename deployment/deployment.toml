@@ -1,6 +1,6 @@
 [server]
 hostname = "localhost"
-# offset  = 10
+#offset  = 10
 
 [user_store]
 type = "read_only_ldap"
@@ -105,11 +105,12 @@ algorithm = "AES"
 # [secrets]
 # secret_key = "[secret value]"
 
-# [[service_catalog]]
-# apim_host = "https://localhost:9443"
-# enable = true
-# username = "admin"
-# password = "admin"
+ [[service_catalog]]
+ apim_host = "https://localhost:9445"
+ enable = true
+ username = "admin"
+ password = "admin"
+ 
 
 # [dashboard_config]
 # dashboard_url = "https://localhost:9743/dashboard/api/"
