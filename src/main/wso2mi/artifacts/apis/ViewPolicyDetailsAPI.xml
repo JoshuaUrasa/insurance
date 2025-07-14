@@ -12,6 +12,8 @@
             <property name="uri.var.policy_id" scope="default" type="STRING"
                 expression="${params.queryParams.policy_id}" />
 
+                <header name="x-api-key" expression="wso2:vault-lookup('x-api-key')" scope="transport"/>
+
             <call>
                 <endpoint key="ViewPolicyDetailsEndpoint" />
 

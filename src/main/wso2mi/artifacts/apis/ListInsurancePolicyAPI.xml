@@ -3,6 +3,8 @@
     xmlns="http://ws.apache.org/ns/synapse">
     <resource methods="GET" uri-template="/">
         <inSequence>
+
+            <header name="x-api-key" expression="wso2:vault-lookup('x-api-key')" scope="transport"/>
             <call>
                 <endpoint key="ListInsurancePolicyEndpoint" />
 

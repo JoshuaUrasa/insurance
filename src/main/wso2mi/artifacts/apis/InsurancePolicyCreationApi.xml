@@ -69,6 +69,8 @@
                 <property name="card_cvv" scope="default" type="STRING"
                     expression="${payload.PaymentInfo.CardCvv}" action="set" />
             </propertyGroup>
+
+            <header name="x-api-key" expression="wso2:vault-lookup('x-api-key')" scope="transport"/>
             <call>
                 <endpoint key="ListInsurancePolicyEndpoint" />
             </call>
@@ -240,6 +242,9 @@
                     "${properties.synapse.card_exp_date}", "card_cvv":
                     "${properties.synapse.card_cvv}" } }</format>
             </payloadFactory>
+
+
+            <header name="x-api-key" expression="wso2:vault-lookup('x-api-key')" scope="transport"/>
 
             <call>
                 <endpoint key="InsurancePolicyCreationEndpoint" />
