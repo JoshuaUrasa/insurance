@@ -4,7 +4,7 @@ name : "ViewPolicyDetailsAPI"
 displayName : "ViewPolicyDetailsAPI"
 description: "ViewPolicyDetailsAPI"
 version: "1.0.0"
-serviceUrl: "https://{MI_HOST}:{MI_PORT}/insurance/1.0.0/view_policy?policy_id=&lt;policy_id"
+serviceUrl: "https://localhost:8290/insurance/1.0.0/view_policy?policy_id=&lt;policy_id"
 definitionType: "OAS3"
 securityType: "BASIC"
 mutualSSLEnabled: false
