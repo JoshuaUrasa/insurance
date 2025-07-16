@@ -4,28 +4,79 @@
     <resource methods="GET" uri-template="/">
         <inSequence>
 
-            <header name="x-api-key" expression="wso2:vault-lookup('x-api-key')" scope="transport"/>
+            <property name="RequestId" expression="get-property('transport', 'RequestId')" />
+
+            
+            <filter xpath="not(get-property('RequestId'))">
+                <then>
+                    <log category="ERROR" logMessageID="false" logFullPayload="false">
+                        <message>Missing RequestId header</message>
+                    </log>
+                    <property name="HTTP_SC" value="400" scope="axis2" />
+                    <property name="messageType" value="application/json" scope="axis2" />
+                    <payloadFactory media-type="json" template-type="default">
+                        <format>{ "ResponseBody": { "Status": "Error", "RequestId": null,
+                            "ErrorMessage": "RequestId header is required" } }</format>
+                    </payloadFactory>
+                    <respond />
+                </then>
+            </filter>
+
+            
+            <filter xpath="string-length(get-property('RequestId')) != 5">
+                <then>
+                    <log category="ERROR" logMessageID="false" logFullPayload="false">
+                        <message>Invalid RequestId length: ${properties.synapse.RequestId}</message>
+                    </log>
+                    <property name="HTTP_SC" value="400" scope="axis2" />
+                    <property name="messageType" value="application/json" scope="axis2" />
+                    <payloadFactory media-type="json" template-type="default">
+                        <format>{ "ResponseBody": { "Status": "Error", "RequestId":
+                            "${properties.synapse.RequestId}", "ErrorMessage": "RequestId must be
+                            exactly 5 digits" } }</format>
+                    </payloadFactory>
+                    <respond />
+                </then>
+            </filter>
+
+
+            <property name="x-api-key" scope="transport" type="STRING"
+                expression="wso2:vault-lookup('x_api_key')" />
             <call>
                 <endpoint key="ListInsurancePolicyEndpoint" />
-
             </call>
+
+
+            <property name="status" scope="default" type="STRING" expression="json-eval($.status)" />
+            <log category="INFO" logMessageID="false" logFullPayload="false">
+                <message>${properties.synapse.status}</message>
+            </log>
             <variable name="OrganizationId" type="STRING" expression="json-eval($.organization_id)" />
             <variable name="OrganizationName" type="STRING"
                 expression="json-eval($.organization_name)" />
             <property name="PolicyTypes" scope="default" type="STRING"
                 expression="json-eval($.policy_types)" />
-            <log category="INFO" logMessageID="false" logFullPayload="false">
-                <message>${properties.synapse.PolicyTypes}</message>
-            </log>
+            <property name="HTTP_SC" value="200" scope="axis2" />
+
             <payloadFactory media-type="json" template-type="default">
 
-                <format>{"ResponseHeader":{"status":"ok","RequestedId":12345},"ResponseBody":{"OrganizationId":
+                <format>{"ResponseHeader":{"status":"ok","RequestdId":${properties.synapse.RequestId}},"ResponseBody":{"OrganizationId":
                     "${vars.OrganizationId}","OrganizationName":"${vars.OrganizationName}","PolicyTypes":[${properties.synapse.PolicyTypes}]
                     }}</format>
             </payloadFactory>
             <respond />
         </inSequence>
         <faultSequence>
+            <property name="HTTP_SC" value="500" scope="axis2" />
+            <property name="messageType" value="application/json" scope="axis2" />
+            <payloadFactory media-type="json" template-type="default">
+                <format>{ "ResponseBody": { "Status": "Error", "RequestId":
+                    ${properties.synapse.RequestId}, "ErrorMessage": "Connection Error with the Mock Backend" } }</format>
+                <args>
+                    <arg expression="get-property('ERROR_MESSAGE')" />
+                </args>
+            </payloadFactory>
+            <respond />
         </faultSequence>
     </resource>
 </api>

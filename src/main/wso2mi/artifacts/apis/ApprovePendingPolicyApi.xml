@@ -7,6 +7,34 @@
                 <message>................................................................................................. Request Received for Approve Pending..................................................</message>
             </log>
 
+            <property name="RequestId" expression="get-property('transport', 'RequestId')" />
+
+
+            <filter xpath="not(get-property('RequestId'))">
+                <then>
+                    <property name="HTTP_SC" value="400" scope="axis2" />
+                    <property name="messageType" value="application/json" scope="axis2" />
+                    <payloadFactory media-type="json" template-type="default">
+                        <format>{ "ResponseBody": { "Status": "Error", "RequestId": null,
+                            "ErrorMessage": "RequestId header required" } }</format>
+                    </payloadFactory>
+                    <respond />
+                </then>
+            </filter>
+
+
+            <filter xpath="string-length(get-property('RequestId')) != 5">
+                <then>
+                    <property name="HTTP_SC" value="400" scope="axis2" />
+                    <property name="messageType" value="application/json" scope="axis2" />
+                    <payloadFactory media-type="json" template-type="default">
+                        <format>{ "ResponseBody": { "Status": "Error", "RequestId":
+                            "${properties.synapse.RequestId}", "ErrorMessage": "RequestId must be exactly 5 digits" } }</format>
+                    </payloadFactory>
+                    <respond />
+                </then>
+            </filter>
+
             <property name="PolicyId" expression="json-eval($.PolicyId)" />
             <property name="ManagerId" expression="json-eval($.ManagerId)" />
             <property name="ApprovalStatus" expression="json-eval($.ApprovalStatus)" />
@@ -15,12 +43,9 @@
             <!-- Validation: PolicyId -->
             <filter xpath="fn:string-length(get-property('PolicyId')) = 0">
                 <then>
-                    <log category="ERROR">
-                        <message>PolicyId is mandatory and cannot be empty</message>
-                    </log>
+                   
                     <payloadFactory media-type="json">
-                        <format> { "error": "BAD_REQUEST", "message": "PolicyId is mandatory",
-                            "code": 400 } </format>
+                        <format> {"ResponseHeader": {"status":"error","RequestId":"${properties.synapse.RequestId}","ErrorMessage": "PolicyId is mandatory"}} </format>
                     </payloadFactory>
                     <property name="HTTP_SC" value="400" scope="axis2" />
                     <respond />
@@ -30,12 +55,8 @@
             <!-- Validation: ManagerId -->
             <filter xpath="fn:string-length(get-property('ManagerId')) = 0">
                 <then>
-                    <log category="ERROR">
-                        <message>ManagerId is mandatory and cannot be empty</message>
-                    </log>
                     <payloadFactory media-type="json">
-                        <format> { "error": "BAD_REQUEST", "message": "ManagerId is mandatory",
-                            "code": 400 } </format>
+                        <format> {"ResponseHeader": {"status":"error","RequestId":"${properties.synapse.RequestId}","ErrorMessage": "ManagerId is mandatory"}} </format>
                     </payloadFactory>
                     <property name="HTTP_SC" value="400" scope="axis2" />
                     <respond />
@@ -45,12 +66,8 @@
             <!-- Validation: ApprovalStatus -->
             <filter xpath="fn:string-length(get-property('ApprovalStatus')) = 0">
                 <then>
-                    <log category="ERROR">
-                        <message>ApprovalStatus is mandatory and cannot be empty</message>
-                    </log>
                     <payloadFactory media-type="json">
-                        <format> { "error": "BAD_REQUEST", "message": "ApprovalStatus is mandatory",
-                            "code": 400 } </format>
+                        <format> {"ResponseHeader": {"status":"error","RequestId":"${properties.synapse.RequestId}","ErrorMessage": "ApprovalStatus is mandatory"}} </format>
                     </payloadFactory>
                     <property name="HTTP_SC" value="400" scope="axis2" />
                     <respond />
@@ -61,19 +78,15 @@
             <filter
                 xpath="get-property('ApprovalStatus') != 'APPROVED' and get-property('ApprovalStatus') != 'REJECTED'">
                 <then>
-                    <log category="ERROR">
-                        <message>ApprovalStatus must be either APPROVED or REJECTED</message>
-                    </log>
                     <payloadFactory media-type="json">
-                        <format> { "error": "BAD_REQUEST", "message": "ApprovalStatus must be either
-                            APPROVED or REJECTED", "code": 400 } </format>
+                        <format> {"ResponseHeader": {"status":"error","RequestId":"${properties.synapse.RequestId}","ErrorMessage": "ApprovalStatus must be either APPROVED or REJECTED"}} </format>
                     </payloadFactory>
                     <property name="HTTP_SC" value="400" scope="axis2" />
                     <respond />
                 </then>
             </filter>
 
-            <!-- All validations passed - proceed with backend call -->
+
             <property name="uri.var.policy_id" scope="default" type="STRING"
                 expression="get-property('PolicyId')" />
 
@@ -91,10 +104,13 @@
                 <endpoint key="ApproveInsuranceEndpoint" />
             </call>
 
-            <property name="policy_id" expression="json-eval($.policy_id)" />
-            <property name="approval_status" expression="json-eval($.approval.approval_status)" />
-            <property name="approved_at" expression="get-property('SYSTEM_DATE')"
-                scope="default" type="STRING" />
+           <property name="policy_id" expression="json-eval($.policy_id)" />
+<property name="approval_status" expression="json-eval($.approval.approval_status)" />
+<property name="manager_name" expression="json-eval(.approval.manager_name)" />
+<property name="approval_comments" expression="json-eval($.approval.comments)" />
+<property name="approved_at" expression="json-eval($.approval.approved_at)" />
+<property name="policy_status" expression="json-eval($.policy_status)" />
+<property name="description" expression="json-eval($.message)" />
 
             <payloadFactory media-type="json" template-type="default">
                 <format>
@@ -102,6 +118,32 @@
                     </format>
             </payloadFactory>
             <store messageStore="INS_DSS_QUEUE" sequence="MessageRouterSequence" />
+
+
+        
+          
+            <property name="HTTP_SC" value="200" scope="axis2" />
+
+    
+        <payloadFactory media-type="json" template-type="default">
+    <format>{
+        "ResponseHeader": {
+            "Status": "OK",
+            "RequestId": "${properties.synapse.RequestId}"
+        },
+        "ResponseBody": {
+            "PolicyId": "${properties.synapse.policy_id}",
+            "Approval": {
+                "ManagerName": "${properties.synapse.manager_name}",
+                "ApprovalStatus": "${properties.synapse.approval_status}",
+                "ApprovalComments": "${properties.synapse.approval_comments}",
+                "ApprovedAt": "${properties.synapse.approved_at}"
+            },
+            "PolicyStatus": "${properties.synapse.policy_status}",
+            "Description": "${properties.synapse.description}"
+        }
+    }</format>
+</payloadFactory>
             <respond />
         </inSequence>
         <faultSequence>
@@ -109,8 +151,8 @@
                 <message>Error occurred while processing policy approval request</message>
             </log>
             <payloadFactory media-type="json">
-                <format> { "error": "INTERNAL_SERVER_ERROR", "message": "An error occurred while
-                    processing the request", "code": 500 } </format>
+                <format> {"ResponseHeader":{"Status": "Error","RequestId":"${properties.synapse.RequestId}","ErrorMessage":"Connection Error with the Mock Backend"}
+} </format>
             </payloadFactory>
             <property name="HTTP_SC" value="500" scope="axis2" />
             <respond />
