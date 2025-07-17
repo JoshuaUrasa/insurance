@@ -6,20 +6,267 @@
             <log category="INFO" logMessageID="false">
                 <message>............................................Insurance Policy Creation API request received........................................</message>
             </log>
-            <validate source="json-eval($)" cache-schema="true">
-                <schema key="resources:json/RequestValidationSchema.json" />
-                <on-fail>
-                    <payloadFactory media-type="json" template-type="default">
-                        <format>{"ResponseHeader": { "status":"Error", "RequestId":12345,
-                            "ErrorMessage":"$1"}}</format>
-                        <args>
-                            <arg expression="$ctx:ERROR_MESSAGE" evaluator="xml" />
-                        </args>
+
+
+            
+            <script language="js">
+                <![CDATA[
+                    try {
+                        var payload = mc.getPayloadJSON();
+                        mc.setProperty("JSON_VALID", "true");
+                    } catch (e) {
+                        mc.setProperty("JSON_VALID", "false");
+                        mc.setProperty("ERROR_MESSAGE", "Existing json payload is malformed: " + e.message);
+                        mc.setProperty("ERROR_CODE", "MALFORMED_JSON");
+                        mc.setProperty("ERROR_FIELD", "unknown");
+                    }
+                ]]>
+            </script>
+            <filter xpath="get-property('JSON_VALID') = 'false'">
+                <then>
+                    <log category="ERROR" logMessageID="false">
+                        <message>Malformed JSON detected</message>
+                        <property name="ERROR_MESSAGE" expression="$ctx:ERROR_MESSAGE"/>
+                    </log>
+                    <payloadFactory media-type="json">
+                        <format>{
+                            "ResponseHeader": {
+                                "status": "Error",
+                                "RequestId": "${properties.synapse.RequestId}",
+                                "ErrorMessage": "${properties.synapse.ERROR_MESSAGE}",
+                                "ErrorCode": "${properties.synapse.ERROR_CODE}",
+                                "FieldName": "${properties.synapse.ERROR_FIELD}"
+                            }
+                        }</format>
                     </payloadFactory>
+                    <property name="HTTP_SC" value="400" scope="axis2"/>
+                    <respond/>
+                </then>
+            </filter>
+
+
+            <property name="RequestId" expression="get-property('transport', 'RequestId')" />
+
+            
+            <filter xpath="not(get-property('RequestId'))">
+                <then>
+                    <log category="ERROR" logMessageID="false" logFullPayload="false">
+                        <message>Missing RequestId header</message>
+                    </log>
                     <property name="HTTP_SC" value="400" scope="axis2" />
+                    <property name="messageType" value="application/json" scope="axis2" />
+                    <payloadFactory media-type="json" template-type="default">
+                        <format>{
+                            "ResponseBody": { "Status": "Error", "RequestId": null, "ErrorMessage":
+                            "RequestId header is required" } }</format>
+                    </payloadFactory>
                     <respond />
-                </on-fail>
-            </validate>
+                </then>
+            </filter>
+
+            
+            <filter xpath="string-length(get-property('RequestId')) != 5">
+                <then>
+                    <log category="ERROR" logMessageID="false" logFullPayload="false">
+                        <message>Invalid RequestId length: ${properties.synapse.RequestId}</message>
+                    </log>
+                    <property name="HTTP_SC" value="400" scope="axis2" />
+                    <property name="messageType" value="application/json" scope="axis2" />
+                    <payloadFactory media-type="json" template-type="default">
+                        <format>{
+                            "ResponseBody": { "Status": "Error", "RequestId":
+                            "${properties.synapse.RequestId}", "ErrorMessage": "RequestId must be
+                            exactly 5 digits" } }</format>
+                    </payloadFactory>
+                    <respond />
+                </then>
+            </filter>
+
+
+        
+<filter source="json-eval($.PolicyHolder.ContactInfo.Phone)" regex="^\+?[1-9]\d{6,14}$|^$|^null$">
+    <then>
+
+    </then>
+    <else>
+        <payloadFactory media-type="json">
+            <format>{
+                "ResponseHeader": {
+                    "status": "Error",
+                    "RequestId": "${properties.synapse.RequestId}",
+                    "ErrorMessage": "Phone must be a valid phone number with country code",
+                    
+                }
+            }</format>
+        </payloadFactory>
+        <property name="HTTP_SC" value="400" scope="axis2"/>
+        <respond/>
+    </else>
+</filter>
+
+<filter source="json-eval($.PolicyHolder.ContactInfo.Email)" regex="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$|^$|^null$">
+        <then>
+            
+        </then>
+        <else>
+            <payloadFactory media-type="json">
+                <format>{
+                    "ResponseHeader": {
+                        "status": "Error",
+                        "RequestId": "${properties.synapse.RequestId}",
+                        "ErrorMessage": "Email must be a valid email address"
+                    }
+                }</format>
+            </payloadFactory>
+            <property name="HTTP_SC" value="400" scope="axis2"/>
+            <respond/>
+        </else>
+    </filter>
+
+            <filter source="json-eval($.PolicyHolder.DateOfBirth)" regex="^\d{4}-\d{2}-\d{2}$">
+    <then>
+        
+    </then>
+    <else>
+        <payloadFactory media-type="json">
+            <format>{"ResponseHeader": {"status": "Error","RequestId": "${properties.synapse.RequestId}","ErrorMessage": "Date of birth is mandatory and must be in YYYY-MM-DD format" }}</format>
+        </payloadFactory>
+        <property name="HTTP_SC" value="400" scope="axis2"/>
+        <respond/>
+    </else>
+</filter>
+
+
+
+    <filter source="json-eval($.PolicyDetails.PolicyType)" regex=".+">
+        <then>
+    
+        </then>
+        <else>
+            <payloadFactory media-type="json">
+                <format>{
+                    "ResponseHeader": {
+                        "status": "Error",
+                        "RequestId": "${properties.synapse.RequestId}",
+                        "ErrorMessage": "Policy type is mandatory",
+                        "ErrorCode": "MISSING_POLICY_TYPE",
+                        "FieldName": "PolicyDetails.PolicyType"
+                    }
+                }</format>
+            </payloadFactory>
+            <property name="HTTP_SC" value="400" scope="axis2"/>
+            <respond/>
+        </else>
+    </filter>
+    
+   <filter source="json-eval($.PolicyDetails.PrimaryCoverageAmount)" regex="^[0-9]+$">
+        <then>
+        </then>
+        <else>
+            <payloadFactory media-type="json">
+                <format>{
+                    "ResponseHeader": {
+                        "status": "Error",
+                        "RequestId": "${properties.synapse.RequestId}",
+                        "ErrorMessage": "Primary coverage amount is mandatory and must be an integer",
+                        "ErrorCode": "MISSING_PRIMARY_COVERAGE_AMOUNT",
+                        "FieldName": "PolicyDetails.PrimaryCoverageAmount"
+                    }
+                }</format>
+            </payloadFactory>
+            <property name="HTTP_SC" value="400" scope="axis2"/>
+            <respond/>
+        </else>
+    </filter>
+   <filter source="json-eval($.PolicyDetails.PremiumAmount)" regex="^[0-9]+$">
+        <then>
+        </then>
+        <else>
+            <payloadFactory media-type="json">
+                <format>{
+                    "ResponseHeader": {
+                        "status": "Error",
+                        "RequestId": "${properties.synapse.RequestId}",
+                        "ErrorMessage": "Premium amount is mandatory and must be an integer",
+                        "ErrorCode": "MISSING_PREMIUM_AMOUNT",
+                        "FieldName": "PolicyDetails.PremiumAmount"
+                    }
+                }</format>
+            </payloadFactory>
+            <property name="HTTP_SC" value="400" scope="axis2"/>
+            <respond/>
+        </else>
+    </filter>
+    
+    <filter source="json-eval($.PolicyDetails.StartDate)" regex="^\d{4}-\d{2}-\d{2}$">
+        <then>
+            
+        </then>
+        <else>
+            <payloadFactory media-type="json">
+                <format>{
+                    "ResponseHeader": {
+                        "status": "Error",
+                        "RequestId": "${properties.synapse.RequestId}",
+                        "ErrorMessage": "Start date is mandatory and must be in YYYY-MM-DD format",
+                        
+                    }
+                }</format>
+            </payloadFactory>
+            <property name="HTTP_SC" value="400" scope="axis2"/>
+            <respond/>
+        </else>
+    </filter>
+
+    <filter source="json-eval($.PolicyDetails.EndDate)" regex="^\d{4}-\d{2}-\d{2}$">
+        <then>
+        </then>
+        <else>
+            <payloadFactory media-type="json">
+                <format>{
+                    "ResponseHeader": {
+                        "status": "Error",
+                        "RequestId": "${properties.synapse.RequestId}",
+                        "ErrorMessage": "End date is mandatory and must be in YYYY-MM-DD format",
+                        "ErrorCode": "MISSING_END_DATE",
+                        "FieldName": "PolicyDetails.EndDate"
+                    }
+                }</format>
+            </payloadFactory>
+            <property name="HTTP_SC" value="400" scope="axis2"/>
+            <respond/>
+        </else>
+    </filter>
+    
+    <filter source="json-eval($.PolicyDetails.PaymentFrequency)" regex="^(Monthly|Weekly|Yearly)$">
+        <then>
+            
+        </then>
+        <else>
+            <payloadFactory media-type="json">
+                <format>{
+                    "ResponseHeader": {
+                        "status": "Error",
+                        "RequestId": "${properties.synapse.RequestId}",
+                        "ErrorMessage": "Payment frequency is mandatory and must be 'Monthly', 'Weekly', or 'Yearly'",
+                        "ErrorCode": "INVALID_PAYMENT_FREQUENCY",
+                        "FieldName": "PolicyDetails.PaymentFrequency"
+                    }
+                }</format>
+            </payloadFactory>
+            <property name="HTTP_SC" value="400" scope="axis2"/>
+            <respond/>
+        </else>
+    </filter>
+            
+            <validate source="json-eval($)" cache-schema="true">
+    <schema key="resources:json/RequestValidationSchema.json" />
+    <on-fail>
+        
+        <sequence key="ParseValidationErrorSequence" />
+        <respond />
+    </on-fail>
+</validate>
             <variable name="FIRST_NAME" type="STRING" expression="${payload.PolicyHolder.FirstName}" />
             <variable name="LAST_NAME" type="STRING" expression="${payload.PolicyHolder.LastName}" />
             <variable name="DOB" type="STRING" expression="${payload.PolicyHolder.DateOfBirth}" />
@@ -70,7 +317,7 @@
                     expression="${payload.PaymentInfo.CardCvv}" action="set" />
             </propertyGroup>
 
-            <header name="x-api-key" expression="wso2:vault-lookup('x-api-key')" scope="transport"/>
+            <header name="x-api-key" expression="wso2:vault-lookup('x-api-key')" scope="transport" />
             <call>
                 <endpoint key="ListInsurancePolicyEndpoint" />
             </call>
@@ -78,9 +325,9 @@
             <filter xpath="$ctx:HTTP_STATUS != '200'">
                 <then>
                     <payloadFactory media-type="json">
-                        <format>{"ResponseHeader": {"Status": "Error", "RequestId": "$1",
-                            "ErrorMessage": "List Insurance Policy Types API failed with status:
-                            $2"}}</format>
+                        <format>{"ResponseHeader":
+                            {"Status": "Error", "RequestId": "$1", "ErrorMessage": "List Insurance
+                            Policy Types API failed with status: $2"}}</format>
                         <args>
                             <arg expression="$ctx:RequestId" evaluator="xml" />
                             <arg expression="$ctx:HTTP_STATUS" evaluator="xml" />
@@ -121,14 +368,14 @@
                                     <format>
                                         <insertInsurancePolicy xmlns="http://ws.apache.org/ns/data">
                                             <FIRST_NAME>
-                                                $1</FIRST_NAME>
+                                        $1</FIRST_NAME>
                                             <LAST_NAME>$2</LAST_NAME>
                                             <DOB>$3</DOB>
                                             <EMAIL>$4</EMAIL>
                                             <MOBILE>$5</MOBILE>
                                             <POLICY_TYPE_ID>$6</POLICY_TYPE_ID>
                                             <PAYMENT_METHOD>
-                                                $7</PAYMENT_METHOD>
+                                        $7</PAYMENT_METHOD>
                                         </insertInsurancePolicy>
                                     </format>
                                     <args>
@@ -220,7 +467,8 @@
             </iterate>
 
             <payloadFactory media-type="json" template-type="default">
-                <format>{ "policy_holder": { "first_name": "${vars.FIRST_NAME}", "last_name":
+                <format>{
+                    "policy_holder": { "first_name": "${vars.FIRST_NAME}", "last_name":
                     "${vars.LAST_NAME}", "date_of_birth": "${vars.DOB}", "gender":
                     "${properties.synapse.gender}", "contact_info": { "email": "${vars.EMAIL}",
                     "phone": "${vars.MOBILE}", "address": { "street":
@@ -244,7 +492,7 @@
             </payloadFactory>
 
 
-            <header name="x-api-key" expression="wso2:vault-lookup('x-api-key')" scope="transport"/>
+            <header name="x-api-key" expression="wso2:vault-lookup('x-api-key')" scope="transport" />
 
             <call>
                 <endpoint key="InsurancePolicyCreationEndpoint" />
@@ -253,8 +501,9 @@
             <filter xpath="$ctx:HTTP_STATUS != '200'">
                 <then>
                     <payloadFactory media-type="json">
-                        <format>{"ResponseHeader": {"Status": "Error", "RequestId": "$1",
-                            "ErrorMessage": "Insurance Policy Creation API failed with status: $2"}}</format>
+                        <format>{"ResponseHeader":
+                            {"Status": "Error", "RequestId": "$1", "ErrorMessage": "Insurance Policy
+                            Creation API failed with status: $2"}}</format>
                         <args>
                             <arg expression="$ctx:RequestId" evaluator="xml" />
                             <arg expression="$ctx:HTTP_STATUS" evaluator="xml" />
@@ -268,11 +517,16 @@
                 </else>
             </filter>
 
-            
             <property name="POLICY_ID" expression="json-eval($.policy_id)" scope="default"
                 type="STRING" />
-
-            
+            <property name="PolicyHolder" expression="json-eval($.policy_holder)" scope="default"
+                type="STRING" />
+            <property name="PolicyDetails" expression="json-eval($.policy_details)" scope="default"
+                type="STRING" />
+            <property name="Beneficiaries" expression="json-eval($.beneficiaries)" scope="default"
+                type="STRING" />
+            <property name="PaymentInfo" expression="json-eval($.payment_info)" scope="default"
+                type="STRING" />
             <property name="EMAIL" expression="$ctx:EMAIL" scope="default" type="STRING" />
             <property name="DID" expression="get-property('operation','DID')
 " scope="default"
@@ -280,12 +534,10 @@
             <property name="CURRENT_TIMESTAMP" expression="get-property('SYSTEM_DATE')"
                 scope="default" type="STRING" />
 
-            
-
 
             <payloadFactory media-type="json">
-                <format>{"MESSAGE_TYPE": "POLICY_ID_UPDATE", "POLICY_ID": "$1", "DID": "$2",
-                    "UPDATED_AT": "$4"}</format>
+                <format>{"MESSAGE_TYPE": "POLICY_ID_UPDATE", "POLICY_ID":
+                    "$1", "DID": "$2", "UPDATED_AT": "$4"}</format>
                 <args>
                     <arg evaluator="xml" expression="$ctx:POLICY_ID" />
                     <arg evaluator="xml" expression="$ctx:DID" />
@@ -295,30 +547,33 @@
             </payloadFactory>
 
             <store messageStore="INS_DSS_QUEUE" sequence="MessageRouterSequence" />
+            <property name="HTTP_SC" value="201" scope="axis2" />
 
-            <payloadFactory media-type="json">
-                <format>{"MESSAGE_TYPE": "POLICY_ID_UPDATE", "POLICY_ID": "$1", "DID": "$2",
-                    "EMAIL": "$3", "UPDATED_AT": "$4"}</format>
-                <args>
-                    <arg evaluator="xml" expression="$ctx:POLICY_ID" />
-                    <arg evaluator="xml" expression="$ctx:DID" />
-                    <arg evaluator="xml" expression="$ctx:EMAIL" />
-                    <arg evaluator="xml" expression="$ctx:CURRENT_TIMESTAMP" />
-                </args>
-            </payloadFactory>
-
-
-            <log category="INFO" logMessageID="false">
-                <property name="FINAL_RESPONSE_PAYLOAD" expression="json-eval($)" />
-            </log>
+            <payloadFactory media-type="json" template-type="default">
+    <format>{
+        "ResponseHeader": {
+            "status": "ok",
+            "RequestId": "${properties.synapse.RequestId}"
+        },
+        "ResponseBody": {
+            "PolicyId": "${properties.synapse.POLICY_ID}",
+            "PolicyHolder": ${properties.synapse.PolicyHolder},
+            "PolicyDetails": ${properties.synapse.PolicyDetails},
+            "Beneficiaries": ${properties.synapse.Beneficiaries},
+            "PaymentInfo": ${properties.synapse.PaymentInfo},
+            "status": "PENDING_APPROVAL",
+            "CreatedDate": "${properties.synapse.CURRENT_TIMESTAMP}"
+        }
+    }</format>
+</payloadFactory>
 
             <respond />
         </inSequence>
         <faultSequence>
 
             <payloadFactory media-type="json">
-                <format>{"ResponseHeader": {"Status": "Error", "RequestId": "$1", "ErrorMessage":
-                    "$2"}}</format>
+                <format>{"ResponseHeader":
+                    {"Status": "Error", "RequestId": "$1", "ErrorMessage": "$2"}}</format>
                 <args>
                     <arg expression="$ctx:RequestId" evaluator="xml" />
                     <arg expression="$ctx:ERROR_MESSAGE" evaluator="xml" />

@@ -40,7 +40,7 @@
             <property name="ApprovalStatus" expression="json-eval($.ApprovalStatus)" />
             <property name="Comments" expression="json-eval($.Comments)" />
 
-            <!-- Validation: PolicyId -->
+
             <filter xpath="fn:string-length(get-property('PolicyId')) = 0">
                 <then>
                    
@@ -52,7 +52,7 @@
                 </then>
             </filter>
 
-            <!-- Validation: ManagerId -->
+
             <filter xpath="fn:string-length(get-property('ManagerId')) = 0">
                 <then>
                     <payloadFactory media-type="json">
@@ -63,7 +63,7 @@
                 </then>
             </filter>
 
-            <!-- Validation: ApprovalStatus -->
+            
             <filter xpath="fn:string-length(get-property('ApprovalStatus')) = 0">
                 <then>
                     <payloadFactory media-type="json">
@@ -74,7 +74,7 @@
                 </then>
             </filter>
 
-            <!-- Validation: ApprovalStatus values -->
+            
             <filter
                 xpath="get-property('ApprovalStatus') != 'APPROVED' and get-property('ApprovalStatus') != 'REJECTED'">
                 <then>
@@ -106,7 +106,7 @@
 
            <property name="policy_id" expression="json-eval($.policy_id)" />
 <property name="approval_status" expression="json-eval($.approval.approval_status)" />
-<property name="manager_name" expression="json-eval(.approval.manager_name)" />
+<property name="manager_name" expression="json-eval($.approval.manager_name)" />
 <property name="approval_comments" expression="json-eval($.approval.comments)" />
 <property name="approved_at" expression="json-eval($.approval.approved_at)" />
 <property name="policy_status" expression="json-eval($.policy_status)" />

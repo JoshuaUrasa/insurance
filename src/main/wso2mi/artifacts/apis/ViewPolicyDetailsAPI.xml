@@ -32,6 +32,19 @@
                 </then>
             </filter>
 
+
+            <filter xpath="not(get-property('uri.var.policy_id')) or string-length(get-property('uri.var.policy_id')) >= 20">
+                <then>
+                    <property name="HTTP_SC" value="400" scope="axis2" />
+                    <property name="messageType" value="application/json" scope="axis2" />
+                    <payloadFactory media-type="json" template-type="default">
+                        <format>{ "ResponseBody": { "Status": "Error", "RequestId":
+                            "${properties.synapse.RequestId}", "ErrorMessage": "policy_id is mandatory and must be less than 20 characters" } }</format>
+                    </payloadFactory>
+                    <respond />
+                </then>
+            </filter>
+
             <property name="uri.var.policy_id" scope="default" type="STRING"
                 expression="${params.queryParams.policy_id}" />
 
@@ -59,17 +72,12 @@
             <respond />
         </inSequence>
         <faultSequence>
-            <log category="ERROR" logMessageID="false" logFullPayload="true">
-                <message>Error occurred in ViewPolicyDetailsAPI</message>
-            </log>
+            
             <property name="HTTP_SC" value="500" scope="axis2"/>
             <property name="messageType" value="application/json" scope="axis2"/>
             <payloadFactory media-type="json" template-type="default">
                 <format>{
-                    "ResponseBody": { 
-                        "Status": "Error", 
-                        "RequestId": "${properties.synapse.RequestId}", 
-                        "ErrorMessage": "$1"
+                    "ResponseBody": { "Status": "Error", "RequestId": "${properties.synapse.RequestId}", "ErrorMessage": "Connection Error with the Mock Backend"
                     } 
                 }</format>
                 <args>
