@@ -1,0 +1,123 @@
+<sequence name="ParseValidationErrorSequence" xmlns="http://ws.apache.org/ns/synapse">
+    
+
+    <script language="js">
+        <![CDATA[
+            try {
+                var errorMsg = mc.getProperty("ERROR_MESSAGE") || "";
+                var errorDetail = mc.getProperty("ERROR_DETAIL") || "";
+                var errorCode = "VALIDATION_ERROR";
+                var fieldName = "unknown";
+                var detailedMessage = "Request validation failed";
+
+                // Ensure errorMsg is a string
+                if (typeof errorMsg === "string") {
+                    // Handle "too short" errors
+                    if (errorMsg.indexOf("too short") !== -1) {
+                        // Check errorDetail or errorMsg for field context
+                        if (errorMsg.indexOf("FirstName") !== -1 || errorDetail.indexOf("FirstName") !== -1) {
+                            fieldName = "PolicyHolder.FirstName";
+                            detailedMessage = "First name is mandatory and must be 1 to 20 characters long";
+                            errorCode = "INVALID_FIRST_NAME";
+                        } else if (errorMsg.indexOf("LastName") !== -1 || errorDetail.indexOf("LastName") !== -1) {
+                            fieldName = "PolicyHolder.LastName";
+                            detailedMessage = "Last name is mandatory and must be 1 to 20 characters long";
+                            errorCode = "INVALID_LAST_NAME";
+                        } else {
+                            detailedMessage = "One or more fields are empty or too short";
+                            errorCode = "FIELD_TOO_SHORT";
+                        }
+                    }
+                    // Handle "required" errors
+                    else if (errorMsg.indexOf("required") !== -1) {
+                        if (errorMsg.indexOf("FirstName") !== -1 || errorDetail.indexOf("FirstName") !== -1) {
+                            fieldName = "PolicyHolder.FirstName";
+                            detailedMessage = "First name is mandatory and must be 1 to 20 characters long";
+                            errorCode = "MISSING_FIRST_NAME";
+                        } else if (errorMsg.indexOf("LastName") !== -1 || errorDetail.indexOf("LastName") !== -1) {
+                            fieldName = "PolicyHolder.LastName";
+                            detailedMessage = "Last name is mandatory and must be 1 to 20 characters long";
+                            errorCode = "MISSING_LAST_NAME";
+                        } else if (errorMsg.indexOf("DateOfBirth") !== -1 || errorDetail.indexOf("DateOfBirth") !== -1) {
+                            fieldName = "PolicyHolder.DateOfBirth";
+                            detailedMessage = "Date of birth is mandatory and must be in YYYY-MM-DD format";
+                            errorCode = "MISSING_DATE_OF_BIRTH";
+                        } else if (errorMsg.indexOf("PolicyType") !== -1 || errorDetail.indexOf("PolicyType") !== -1) {
+                            fieldName = "PolicyDetails.PolicyType";
+                            detailedMessage = "Policy type is mandatory";
+                            errorCode = "MISSING_POLICY_TYPE";
+                        } else {
+                            detailedMessage = "One or more required fields are missing";
+                            errorCode = "MISSING_REQUIRED_FIELDS";
+                        }
+                    }
+                    // Handle "pattern" errors
+                    else if (errorMsg.indexOf("pattern") !== -1) {
+                        if (errorMsg.indexOf("DateOfBirth") !== -1 || errorDetail.indexOf("DateOfBirth") !== -1) {
+                            fieldName = "PolicyHolder.DateOfBirth";
+                            detailedMessage = "Date of birth must be in YYYY-MM-DD format";
+                            errorCode = "INVALID_DATE_FORMAT";
+                        } else if (errorMsg.indexOf("Email") !== -1 || errorDetail.indexOf("Email") !== -1) {
+                            fieldName = "PolicyHolder.ContactInfo.Email";
+                            detailedMessage = "Email must be a valid email address";
+                            errorCode = "INVALID_EMAIL_FORMAT";
+                        } else if (errorMsg.indexOf("Phone") !== -1 || errorDetail.indexOf("Phone") !== -1) {
+                            fieldName = "PolicyHolder.ContactInfo.Phone";
+                            detailedMessage = "Phone must be a valid phone number with country code";
+                            errorCode = "INVALID_PHONE_FORMAT";
+                        } else if (errorMsg.indexOf("CardExpiryDate") !== -1 || errorDetail.indexOf("CardExpiryDate") !== -1) {
+                            fieldName = "PaymentInfo.CardExpiryDate";
+                            detailedMessage = "Card expiry date must be in YYYY-MM format";
+                            errorCode = "INVALID_CARD_EXPIRY_FORMAT";
+                        } else if (errorMsg.indexOf("CardCvv") !== -1 || errorDetail.indexOf("CardCvv") !== -1) {
+                            fieldName = "PaymentInfo.CardCvv";
+                            detailedMessage = "Card CVV must be 3 or 4 digits";
+                            errorCode = "INVALID_CARD_CVV_FORMAT";
+                        }
+                    }
+                    // Handle "enum" errors
+                    else if (errorMsg.indexOf("enum") !== -1) {
+                        if (errorMsg.indexOf("Gender") !== -1 || errorDetail.indexOf("Gender") !== -1) {
+                            fieldName = "PolicyHolder.Gender";
+                            detailedMessage = "Gender must be either 'Male' or 'Female'";
+                            errorCode = "INVALID_GENDER";
+                        } else if (errorMsg.indexOf("PaymentFrequency") !== -1 || errorDetail.indexOf("PaymentFrequency") !== -1) {
+                            fieldName = "PolicyDetails.PaymentFrequency";
+                            detailedMessage = "Payment frequency must be 'Monthly', 'Weekly', or 'Yearly'";
+                            errorCode = "INVALID_PAYMENT_FREQUENCY";
+                        }
+                    }
+                    // Default case for unrecognized errors
+                    else {
+                        detailedMessage = "Validation failed due to an unrecognized error";
+                        errorCode = "UNKNOWN_VALIDATION_ERROR";
+                    }
+                } else {
+                    detailedMessage = "Invalid error message format received";
+                    errorCode = "INVALID_ERROR_FORMAT";
+                }
+
+                mc.setProperty("PARSED_ERROR_MESSAGE", detailedMessage);
+                mc.setProperty("PARSED_ERROR_CODE", errorCode);
+                mc.setProperty("PARSED_FIELD_NAME", fieldName);
+            } catch (e) {
+                mc.setProperty("PARSED_ERROR_MESSAGE", "Internal error while processing validation error: " + e.message);
+                mc.setProperty("PARSED_ERROR_CODE", "SCRIPT_EXECUTION_ERROR");
+                mc.setProperty("PARSED_FIELD_NAME", "unknown");
+            }
+        ]]>
+    </script>
+    
+    
+    <payloadFactory media-type="json" template-type="default">
+        <format>{
+            "ResponseHeader": {
+                "status": "Error",
+                "RequestId": "${properties.synapse.RequestId}",
+                "ErrorMessage": "${properties.synapse.PARSED_ERROR_MESSAGE}", 
+            }
+        }</format>
+    </payloadFactory>
+    
+    <property name="HTTP_SC" value="400" scope="axis2"/>
+</sequence>

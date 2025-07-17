@@ -9,9 +9,6 @@
             
             <filter xpath="not(get-property('RequestId'))">
                 <then>
-                    <log category="ERROR" logMessageID="false" logFullPayload="false">
-                        <message>Missing RequestId header</message>
-                    </log>
                     <property name="HTTP_SC" value="400" scope="axis2" />
                     <property name="messageType" value="application/json" scope="axis2" />
                     <payloadFactory media-type="json" template-type="default">
@@ -25,9 +22,6 @@
             
             <filter xpath="string-length(get-property('RequestId')) != 5">
                 <then>
-                    <log category="ERROR" logMessageID="false" logFullPayload="false">
-                        <message>Invalid RequestId length: ${properties.synapse.RequestId}</message>
-                    </log>
                     <property name="HTTP_SC" value="400" scope="axis2" />
                     <property name="messageType" value="application/json" scope="axis2" />
                     <payloadFactory media-type="json" template-type="default">
