@@ -6,10 +6,8 @@
             <log category="INFO" logMessageID="false">
                 <message>............................................Insurance Policy Creation API request received........................................</message>
             </log>
-
-
             
-            <script language="js">
+            <!-- <script language="js">
                 <![CDATA[
                     try {
                         var payload = mc.getPayloadJSON();
@@ -21,7 +19,7 @@
                         mc.setProperty("ERROR_FIELD", "unknown");
                     }
                 ]]>
-            </script>
+            </script> -->
             <filter xpath="get-property('JSON_VALID') = 'false'">
                 <then>
                     <log category="ERROR" logMessageID="false">
