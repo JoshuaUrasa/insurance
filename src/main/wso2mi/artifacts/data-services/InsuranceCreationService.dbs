@@ -95,7 +95,7 @@
         </call-query>
     </operation>
 
-    <!-- NEW QUERY FOR APPROVAL/REJECTION BY POLICY_ID -->
+    
     <query id="approvePolicyByPolicyIdQuery" useConfig="insuranceService">
         <sql>
             UPDATE INSURANCE_POLICY_DATA 
